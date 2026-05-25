@@ -8,4 +8,4 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm --filter=@taekwombats/database exec prisma generate
 RUN pnpm --filter=@taekwombats/api build
 EXPOSE 3001
-CMD ["sh", "-c", "pnpm --filter=@taekwombats/database exec prisma migrate deploy && node apps/api/dist/main"]
+CMD ["sh", "-c", "pnpm --filter=@taekwombats/database exec prisma migrate deploy && node apps/api/dist/apps/api/src/main"]
