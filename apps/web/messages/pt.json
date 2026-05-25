@@ -1,0 +1,42 @@
+{
+  "common": {
+    "create": "Criar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "loading": "A carregar...",
+    "actions": "Ações",
+    "status": "Estado",
+    "date": "Data",
+    "search": "Pesquisar"
+  },
+  "auth": {
+    "login": "Entrar",
+    "register": "Criar Conta",
+    "logout": "Sair",
+    "email": "Email",
+    "password": "Palavra-passe",
+    "firstName": "Nome",
+    "lastName": "Apelido"
+  },
+  "tournament": {
+    "create": "Criar Torneio",
+    "name": "Nome do Torneio",
+    "startDate": "Data de Início",
+    "registrationDeadline": "Prazo de Inscrição",
+    "numAreas": "Número de Áreas",
+    "drawType": "Tipo de Sorteio",
+    "random": "Aleatório",
+    "byRanking": "Por Ranking",
+    "generateBrackets": "Gerar Mapas",
+    "status": {
+      "DRAFT": "Rascunho",
+      "PRIVATE": "Privado",
+      "PUBLIC": "Público",
+      "ONGOING": "Em Curso",
+      "FINISHED": "Terminado",
+      "CANCELLED": "Cancelado"
+    }
+  }
+}

@@ -1,0 +1,628 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  ADMIN
+  PROMOTER
+  CLUB
+  ATHLETE
+  REFEREE
+}
+
+enum TournamentStatus {
+  DRAFT
+  PRIVATE
+  PUBLIC
+  ONGOING
+  FINISHED
+  CANCELLED
+}
+
+enum DrawType {
+  RANDOM
+  RANKING
+}
+
+enum AthletesVisible {
+  NONE
+  REGISTERED
+  ALL
+}
+
+enum CombatStatus {
+  SCHEDULED
+  IN_PROGRESS
+  FINISHED
+  CANCELLED
+  POSTPONED
+}
+
+enum RoundType {
+  ROUND_OF_64
+  ROUND_OF_32
+  ROUND_OF_16
+  QUARTER_FINAL
+  SEMI_FINAL
+  FINAL
+  REPECHAGE
+  BRONZE
+}
+
+enum PointType {
+  PUNCH_BODY
+  KICK_BODY
+  KICK_HEAD
+  SPIN_KICK_BODY
+  SPIN_KICK_HEAD
+  PENALTY
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  MBWAY
+  OTHER
+}
+
+enum PlatformPaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+enum RefereeRole {
+  MAIN
+  JUDGE_1
+  JUDGE_2
+  AREA_JUDGE
+}
+
+enum ProtestStatus {
+  PENDING
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+}
+
+// ============================================================
+// USERS & AUTHENTICATION
+// ============================================================
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String
+  firstName         String
+  lastName          String
+  phone             String?
+  countryCode       String?   @default("PT")
+  language          String    @default("en")
+  role              UserRole  @default(PROMOTER)
+  isActive          Boolean   @default(true)
+  emailVerifiedAt   DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  club                    Club?
+  promotedTournaments     Tournament[]            @relation("PromotedTournaments")
+  athleteRegistrations    TournamentRegistration[] @relation("AthleteRegistrations")
+  issuedInvoices          InvoiceNote[]           @relation("IssuedInvoices")
+  receivedInvoices        InvoiceNote[]           @relation("ReceivedInvoices")
+  platformPayments        PlatformPayment[]
+  referralPointsGiven     ReferralPoint[]         @relation("ReferralPointsGiven")
+  referralPointsReceived  ReferralPoint[]         @relation("ReferralPointsReceived")
+  auditLogs               AuditLog[]
+  pushSubscriptions       PushSubscription[]
+  combatReferees          CombatReferee[]
+  combatsRecorded         CombatPoint[]
+  protestsFiled           Protest[]               @relation("ProtestsFiled")
+  protestsDecided         Protest[]               @relation("ProtestsDecided")
+  checkinsPerformed       AthleteCheckin[]        @relation("CheckinsPerformed")
+  weightsVerified         AthleteCheckin[]        @relation("WeightsVerified")
+  docsVerified            AthleteCheckin[]        @relation("DocsVerified")
+  refreshTokens           RefreshToken[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ============================================================
+// CLUBS
+// ============================================================
+
+model Club {
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  name        String
+  sigla       String?
+  logoUrl     String?
+  address     String?
+  city        String?
+  postalCode  String?
+  country     String? @default("Portugal")
+  phone       String?
+  email       String?
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user          User                     @relation(fields: [userId], references: [id])
+  registrations TournamentRegistration[] @relation("ClubAthleteRegistrations")
+
+  @@index([userId])
+  @@map("clubs")
+}
+
+// ============================================================
+// PLATFORM SETTINGS
+// ============================================================
+
+model PlatformSettings {
+  id                        String   @id @default(cuid())
+  platformName              String   @default("Taekwombats")
+  logoUrl                   String?
+  costPerAthlete            Decimal  @default(2.50) @db.Decimal(10, 2)
+  referralPointsPerReferral Int      @default(10)
+  referralPointsMinAthletes Int      @default(200)
+  referralDiscountPct       Decimal  @default(10.00) @db.Decimal(5, 2)
+  pointsOnRegistration      Int      @default(5)
+  platformEmail             String   @default("admin@taekwombats.com")
+  updatedAt                 DateTime @updatedAt
+
+  @@map("platform_settings")
+}
+
+// ============================================================
+// REFERENCE DATA
+// ============================================================
+
+model Grade {
+  id                 String  @id @default(cuid())
+  namePt             String
+  nameEn             String
+  nameFr             String?
+  nameEs             String?
+  nameDe             String?
+  nameIt             String?
+  minAge             Int?
+  maxAge             Int?
+  avgCombatDuration  Int     @default(6)
+  displayOrder       Int     @default(0)
+
+  weightCategories  WeightCategory[]
+  categories        TournamentCategory[]
+
+  @@map("grades")
+}
+
+model Gender {
+  id     String @id @default(cuid())
+  code   String @unique
+  namePt String
+  nameEn String
+  nameFr String?
+  nameEs String?
+  nameDe String?
+  nameIt String?
+
+  weightCategories  WeightCategory[]
+  categories        TournamentCategory[]
+
+  @@map("genders")
+}
+
+model WeightCategory {
+  id            String  @id @default(cuid())
+  gradeId       String
+  genderId      String
+  symbol        String?
+  weightValue   Decimal @db.Decimal(5, 2)
+  strWeight     String
+  displayNamePt String
+  displayNameEn String
+  displayNameFr String?
+  displayNameEs String?
+  displayNameDe String?
+  displayNameIt String?
+  vestType      Int
+  isOfficial    Boolean @default(true)
+  displayOrder  Int     @default(0)
+
+  grade    Grade    @relation(fields: [gradeId], references: [id])
+  gender   Gender   @relation(fields: [genderId], references: [id])
+  tournamentCategories TournamentCategory[]
+
+  @@index([gradeId, genderId])
+  @@map("weight_categories")
+}
+
+model Regulation {
+  id        String  @id @default(cuid())
+  name      String
+  language  String
+  content   String  @db.Text
+  version   String?
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([name, language])
+  @@map("regulations")
+}
+
+// ============================================================
+// TOURNAMENTS
+// ============================================================
+
+model Tournament {
+  id                       String           @id @default(cuid())
+  promoterId               String
+  name                     String
+  slug                     String           @unique
+  description              String?          @db.Text
+  startDate                DateTime         @db.Date
+  startTime                DateTime         @db.Time
+  endDate                  DateTime?        @db.Date
+  registrationDeadline     DateTime         @db.Date
+  registrationDeadlineTime DateTime         @default(dbgenerated("'23:59:00'")) @db.Time
+  numAreas                 Int              @default(1)
+  drawType                 DrawType         @default(RANDOM)
+  numRounds                Int              @default(3)
+  hasVestLimitation        Boolean          @default(false)
+  vestQtyType1             Int?
+  vestQtyType2             Int?
+  vestQtyType3             Int?
+  vestQtyType4             Int?
+  athletesVisible          AthletesVisible  @default(NONE)
+  drawVisible              Boolean          @default(false)
+  areasVisible             Boolean          @default(false)
+  flyerUrl                 String?
+  sponsorLogos             Json?
+  status                   TournamentStatus @default(PRIVATE)
+  bracketsGenerated        Boolean          @default(false)
+  platformPaymentId        String?
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+
+  promoter          User                     @relation("PromotedTournaments", fields: [promoterId], references: [id])
+  categories        TournamentCategory[]
+  registrations     TournamentRegistration[]
+  areas             CompetitionArea[]
+  combats           Combat[]
+  invoiceNotes      InvoiceNote[]
+  platformPayment   PlatformPayment?
+  checkins          AthleteCheckin[]
+
+  @@index([promoterId])
+  @@index([slug])
+  @@index([status])
+  @@index([registrationDeadline])
+  @@map("tournaments")
+}
+
+model TournamentCategory {
+  id                 String   @id @default(cuid())
+  tournamentId       String
+  gradeId            String?
+  genderId           String?
+  weightCategoryId   String?
+  vestType           Int
+  isCustom           Boolean  @default(false)
+  customName         String?
+  minWeight          Decimal? @db.Decimal(5, 2)
+  maxWeight          Decimal? @db.Decimal(5, 2)
+  avgCombatDuration  Int      @default(6)
+  createdAt          DateTime @default(now())
+
+  tournament      Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  grade           Grade?          @relation(fields: [gradeId], references: [id])
+  gender          Gender?         @relation(fields: [genderId], references: [id])
+  weightCategory  WeightCategory? @relation(fields: [weightCategoryId], references: [id])
+  registrations   TournamentRegistration[]
+  combats         Combat[]
+
+  @@index([tournamentId])
+  @@map("tournament_categories")
+}
+
+model TournamentRegistration {
+  id                  String   @id @default(cuid())
+  tournamentId        String
+  athleteId           String
+  clubId              String?
+  categoryId          String
+  ranking             Int      @default(0)
+  weight              Decimal? @db.Decimal(5, 2)
+  isPaid              Boolean  @default(false)
+  invoiceNoteId       String?
+  checkedIn           Boolean  @default(false)
+  weighInVerified     Boolean  @default(false)
+  documentsVerified   Boolean  @default(false)
+  includedInBrackets  Boolean  @default(false)
+  registrationDate    DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tournament    Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  athlete       User               @relation("AthleteRegistrations", fields: [athleteId], references: [id])
+  club          Club?              @relation("ClubAthleteRegistrations", fields: [clubId], references: [id])
+  category      TournamentCategory @relation(fields: [categoryId], references: [id])
+  invoiceNote   InvoiceNote?       @relation(fields: [invoiceNoteId], references: [id])
+  redCombats    Combat[]           @relation("RedAthlete")
+  blueCombats   Combat[]           @relation("BlueAthlete")
+  wonCombats    Combat[]           @relation("WinnerAthlete")
+  combatPoints  CombatPoint[]
+  checkin       AthleteCheckin?
+
+  @@index([tournamentId, categoryId])
+  @@index([athleteId])
+  @@map("tournament_registrations")
+}
+
+// ============================================================
+// COMPETITION
+// ============================================================
+
+model CompetitionArea {
+  id              String   @id @default(cuid())
+  tournamentId    String
+  name            String
+  vestTypes       Json     @default("[]")
+  currentCombatId String?
+  isActive        Boolean  @default(true)
+
+  tournament  Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  combats     Combat[]
+
+  @@index([tournamentId])
+  @@map("competition_areas")
+}
+
+model Combat {
+  id               String       @id @default(cuid())
+  tournamentId     String
+  categoryId       String
+  areaId           String?
+  combatNumber     Int
+  roundNumber      Int
+  roundType        RoundType
+  bracketPosition  Int?
+  redAthleteId     String?
+  blueAthleteId    String?
+  winnerId         String?
+  nextCombatId     String?
+  isRepechage      Boolean      @default(false)
+  scheduledTime    DateTime?
+  actualStartTime  DateTime?
+  actualEndTime    DateTime?
+  status           CombatStatus @default(SCHEDULED)
+  redScore         Int          @default(0)
+  blueScore        Int          @default(0)
+  refereeId        String?
+  protestFiled     Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  tournament   Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  category     TournamentCategory @relation(fields: [categoryId], references: [id])
+  area         CompetitionArea?   @relation(fields: [areaId], references: [id])
+  redAthlete   TournamentRegistration? @relation("RedAthlete", fields: [redAthleteId], references: [id])
+  blueAthlete  TournamentRegistration? @relation("BlueAthlete", fields: [blueAthleteId], references: [id])
+  winner       TournamentRegistration? @relation("WinnerAthlete", fields: [winnerId], references: [id])
+  nextCombat   Combat?  @relation("NextCombat", fields: [nextCombatId], references: [id])
+  prevCombats  Combat[] @relation("NextCombat")
+  referees     CombatReferee[]
+  points       CombatPoint[]
+  protest      Protest?
+
+  @@index([tournamentId, status])
+  @@index([scheduledTime])
+  @@map("combats")
+}
+
+model CombatReferee {
+  id             String      @id @default(cuid())
+  combatId       String
+  refereeId      String
+  role           RefereeRole @default(MAIN)
+  canEditResults Boolean     @default(false)
+  assignedAt     DateTime    @default(now())
+
+  combat  Combat @relation(fields: [combatId], references: [id], onDelete: Cascade)
+  referee User   @relation(fields: [refereeId], references: [id])
+
+  @@unique([combatId, refereeId])
+  @@map("combat_referees")
+}
+
+model CombatPoint {
+  id           String    @id @default(cuid())
+  combatId     String
+  athleteId    String
+  pointType    PointType
+  pointValue   Int
+  roundNumber  Int
+  timestamp    String
+  recordedBy   String
+  recordedAt   DateTime  @default(now())
+
+  combat     Combat                 @relation(fields: [combatId], references: [id], onDelete: Cascade)
+  athlete    TournamentRegistration @relation(fields: [athleteId], references: [id])
+  recordedByUser User               @relation(fields: [recordedBy], references: [id])
+
+  @@index([combatId])
+  @@map("combat_points")
+}
+
+model AthleteCheckin {
+  id                   String   @id @default(cuid())
+  tournamentId         String
+  registrationId       String   @unique
+  checkedInAt          DateTime @default(now())
+  checkedInBy          String
+  actualWeight         Decimal? @db.Decimal(5, 2)
+  weightVerified       Boolean  @default(false)
+  weightVerifiedBy     String?
+  weightVerifiedAt     DateTime?
+  documentsChecked     Boolean  @default(false)
+  documentsVerifiedBy  String?
+  documentsVerifiedAt  DateTime?
+  athleteCardNumber    String?
+  medicalCertificate   Boolean  @default(false)
+  notes                String?
+
+  tournament    Tournament             @relation(fields: [tournamentId], references: [id])
+  registration  TournamentRegistration @relation(fields: [registrationId], references: [id])
+  checkedInByUser      User @relation("CheckinsPerformed", fields: [checkedInBy], references: [id])
+  weightVerifiedByUser User? @relation("WeightsVerified", fields: [weightVerifiedBy], references: [id])
+  docsVerifiedByUser   User? @relation("DocsVerified", fields: [documentsVerifiedBy], references: [id])
+
+  @@index([tournamentId])
+  @@map("athlete_checkins")
+}
+
+model Protest {
+  id           String        @id @default(cuid())
+  combatId     String        @unique
+  filedBy      String
+  filedAt      DateTime      @default(now())
+  reason       String        @db.Text
+  status       ProtestStatus @default(PENDING)
+  juryMembers  Json?
+  decision     String?       @db.Text
+  decidedAt    DateTime?
+  decidedBy    String?
+
+  combat      Combat @relation(fields: [combatId], references: [id])
+  filedByUser User   @relation("ProtestsFiled", fields: [filedBy], references: [id])
+  decidedByUser User? @relation("ProtestsDecided", fields: [decidedBy], references: [id])
+
+  @@map("protests")
+}
+
+// ============================================================
+// INVOICES & PAYMENTS
+// ============================================================
+
+model InvoiceNote {
+  id            String        @id @default(cuid())
+  issuerId      String
+  receiverId    String
+  tournamentId  String
+  totalAmount   Decimal       @db.Decimal(10, 2)
+  numAthletes   Int
+  status        InvoiceStatus @default(PENDING)
+  issuedAt      DateTime      @default(now())
+  paidAt        DateTime?
+  paymentMethod PaymentMethod?
+  notes         String?
+
+  issuer        User                     @relation("IssuedInvoices", fields: [issuerId], references: [id])
+  receiver      User                     @relation("ReceivedInvoices", fields: [receiverId], references: [id])
+  tournament    Tournament               @relation(fields: [tournamentId], references: [id])
+  registrations TournamentRegistration[]
+
+  @@index([tournamentId])
+  @@index([issuerId])
+  @@map("invoice_notes")
+}
+
+model PlatformPayment {
+  id                          String                @id @default(cuid())
+  tournamentId                String                @unique
+  promoterId                  String
+  numAthletes                 Int
+  totalAmount                 Decimal               @db.Decimal(10, 2)
+  discountPct                 Decimal               @default(0.00) @db.Decimal(5, 2)
+  discountReason              String?
+  finalAmount                 Decimal               @db.Decimal(10, 2)
+  status                      PlatformPaymentStatus @default(PENDING)
+  includesUnpaidRegistrations Boolean               @default(false)
+  paidAt                      DateTime?
+  createdAt                   DateTime              @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id])
+  promoter   User       @relation(fields: [promoterId], references: [id])
+
+  @@map("platform_payments")
+}
+
+model ReferralPoint {
+  id                 String   @id @default(cuid())
+  userId             String
+  referrerId         String?
+  points             Int
+  reason             String
+  usedForDiscount    Boolean  @default(false)
+  discountAppliedAt  DateTime?
+  createdAt          DateTime @default(now())
+
+  user     User  @relation("ReferralPointsGiven", fields: [userId], references: [id])
+  referrer User? @relation("ReferralPointsReceived", fields: [referrerId], references: [id])
+
+  @@index([userId])
+  @@map("referral_points")
+}
+
+// ============================================================
+// NOTIFICATIONS & AUDIT
+// ============================================================
+
+model PushSubscription {
+  id           String   @id @default(cuid())
+  userId       String
+  subscription Json
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String?
+  entityId   String?
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

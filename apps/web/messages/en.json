@@ -1,0 +1,42 @@
+{
+  "common": {
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "loading": "Loading...",
+    "actions": "Actions",
+    "status": "Status",
+    "date": "Date",
+    "search": "Search"
+  },
+  "auth": {
+    "login": "Sign In",
+    "register": "Create Account",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "firstName": "First Name",
+    "lastName": "Last Name"
+  },
+  "tournament": {
+    "create": "Create Tournament",
+    "name": "Tournament Name",
+    "startDate": "Start Date",
+    "registrationDeadline": "Registration Deadline",
+    "numAreas": "Number of Areas",
+    "drawType": "Draw Type",
+    "random": "Random",
+    "byRanking": "By Ranking",
+    "generateBrackets": "Generate Brackets",
+    "status": {
+      "DRAFT": "Draft",
+      "PRIVATE": "Private",
+      "PUBLIC": "Public",
+      "ONGOING": "Live",
+      "FINISHED": "Completed",
+      "CANCELLED": "Cancelled"
+    }
+  }
+}

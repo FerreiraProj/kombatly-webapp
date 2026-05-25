@@ -1,0 +1,104 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  LayoutDashboard, Trophy, Users, DollarSign, Settings, LogOut, Activity,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/lib/store/auth.store';
+import { apiClient } from '@/lib/api/client';
+
+const navItems = [
+  { label: 'Dashboard',   href: '/dashboard',   icon: LayoutDashboard },
+  { label: 'Tournaments', href: '/tournaments',  icon: Trophy },
+  { label: 'Athletes',    href: '/athletes',     icon: Users },
+  { label: 'Financials',  href: '/financials',   icon: DollarSign },
+  { label: 'Settings',    href: '/settings',     icon: Settings },
+];
+
+export function Sidebar() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, clearAuth } = useAuthStore();
+
+  async function handleLogout() {
+    try { await apiClient.post('/auth/logout'); } catch { /* ignore */ }
+    clearAuth();
+    router.push('/login');
+  }
+
+  const initials = user
+    ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
+    : '?';
+
+  return (
+    <aside className="hidden w-52 flex-shrink-0 flex-col border-r border-border bg-surface lg:flex">
+      {/* Logo */}
+      <div className="flex h-14 items-center px-5 border-b border-border">
+        <span className="font-heading text-xl text-primary tracking-widest">TAEKWOMBATS</span>
+      </div>
+
+      {/* User info */}
+      <Link
+        href="/settings"
+        className="flex items-center gap-3 border-b border-border px-5 py-4 hover:bg-surface-elevated transition-colors group"
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+          {initials}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+            {user ? `${user.firstName} ${user.lastName}` : 'Loading...'}
+          </p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+            {user?.role ?? 'Promoter'}
+          </p>
+        </div>
+      </Link>
+
+      {/* Nav */}
+      <nav className="flex flex-1 flex-col gap-0.5 px-3 py-4">
+        {navItems.map((item) => {
+          const active = pathname === item.href || pathname.startsWith(item.href + '/');
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-3 rounded px-3 py-2.5 text-xs font-medium uppercase tracking-wider transition-colors',
+                active
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-surface-elevated hover:text-foreground',
+              )}
+            >
+              <item.icon className="h-4 w-4 flex-shrink-0" />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Bottom */}
+      <div className="border-t border-border px-3 py-4 space-y-0.5">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded px-3 py-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          Logout
+        </button>
+      </div>
+
+      {/* Create tournament CTA */}
+      <div className="px-3 pb-4">
+        <Link
+          href="/tournaments/create"
+          className="block w-full rounded bg-primary py-3 text-center text-xs font-bold uppercase tracking-widest text-white hover:bg-red-700 transition-colors"
+        >
+          + Create Tournament
+        </Link>
+      </div>
+    </aside>
+  );
+}
