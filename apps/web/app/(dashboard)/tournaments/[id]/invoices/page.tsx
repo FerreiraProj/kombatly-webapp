@@ -426,9 +426,9 @@ function InvoiceCard({
                   {reg.category.isCustom
                     ? reg.category.customName
                     : [
-                        reg.category.grade?.nameEn,
+                        reg.category.grade?.names?.en,
                         reg.category.gender?.code === 'M' ? 'Male' : reg.category.gender?.code === 'F' ? 'Female' : null,
-                        reg.category.weightCategory?.displayNameEn ?? reg.category.weightCategory?.strWeight,
+                        reg.category.weightCategory?.displayNames?.en ?? reg.category.weightCategory?.strWeight,
                       ].filter(Boolean).join(' Â· ')}
                 </div>
                 <div className="col-span-3 text-xs text-muted-foreground">

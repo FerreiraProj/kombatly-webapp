@@ -16,9 +16,9 @@ function fmtTime(iso?: string) {
 
 function categoryLabel(cat: any): string {
   if (cat.isCustom) return cat.customName ?? 'Custom';
-  const grade = cat.grade?.nameEn ?? '';
+  const grade = cat.grade?.names?.en ?? '';
   const gender = cat.gender?.code === 'M' ? 'Male' : cat.gender?.code === 'F' ? 'Female' : '';
-  const weight = cat.weightCategory?.displayNameEn ?? cat.weightCategory?.strWeight ?? '';
+  const weight = cat.weightCategory?.displayNames?.en ?? cat.weightCategory?.strWeight ?? '';
   return [grade, gender, weight].filter(Boolean).join(' Â· ');
 }
 
@@ -115,7 +115,7 @@ export default async function PublicTournamentPage({ params }: { params: Promise
                 {categories.map((cat: any) => (
                   <li key={cat.id} className="grid grid-cols-1 gap-1 px-5 py-3 text-sm sm:grid-cols-12 sm:items-center sm:gap-3">
                     <div className="col-span-5 font-medium text-foreground">{categoryLabel(cat)}</div>
-                    <div className="col-span-3 text-muted-foreground text-xs">{cat.grade?.nameEn ?? 'â€”'}</div>
+                    <div className="col-span-3 text-muted-foreground text-xs">{cat.grade?.names?.en ?? 'â€”'}</div>
                     <div className="col-span-2 text-muted-foreground text-xs">
                       {cat.gender?.code === 'M' ? 'Male' : cat.gender?.code === 'F' ? 'Female' : 'â€”'}
                     </div>

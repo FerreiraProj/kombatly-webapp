@@ -258,7 +258,7 @@ export default function RegisterAthletesPage() {
                           {athlete.firstName} {athlete.lastName}
                         </p>
                         <p className="truncate text-xs text-muted-foreground">
-                          {athlete.grade?.nameEn ?? 'â€”'} Â· {athlete.gender?.code === 'M' ? 'Male' : athlete.gender?.code === 'F' ? 'Female' : 'â€”'}
+                          {athlete.grade?.nameEn ?? '—'} · {athlete.gender?.code === 'M' ? 'Male' : athlete.gender?.code === 'F' ? 'Female' : '—'}
                         </p>
                       </div>
                       {!isSelected && (
@@ -390,7 +390,7 @@ function RegistrationCard({
               {row.athlete.firstName} {row.athlete.lastName}
             </p>
             <p className="text-xs text-muted-foreground">
-              {row.athlete.grade?.nameEn ?? 'â€”'} Â· {row.athlete.gender?.code === 'M' ? 'Male' : row.athlete.gender?.code === 'F' ? 'Female' : 'â€”'}
+              {row.athlete.grade?.nameEn ?? '—'} · {row.athlete.gender?.code === 'M' ? 'Male' : row.athlete.gender?.code === 'F' ? 'Female' : '—'}
             </p>
           </div>
         </div>
