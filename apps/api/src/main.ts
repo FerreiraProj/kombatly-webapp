@@ -38,9 +38,15 @@ async function bootstrap() {
   // Swagger docs
   const config = new DocumentBuilder()
     .setTitle('Taekwombats API')
-    .setDescription('Tournament management platform API')
+    .setDescription(
+      'Tournament management platform API.\n\n' +
+      '**Authentication options:**\n' +
+      '- **Bearer token** — obtain via `POST /auth/login`, pass as `Authorization: Bearer <token>`\n' +
+      '- **API key** — create via `POST /api-keys` (requires login), pass as `X-API-Key: <key>` header',
+    )
     .setVersion('1.0')
     .addBearerAuth()
+    .addApiKey({ type: 'apiKey', in: 'header', name: 'X-API-Key' }, 'apiKey')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);

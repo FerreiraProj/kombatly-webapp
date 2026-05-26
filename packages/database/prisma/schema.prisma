@@ -138,9 +138,27 @@ model User {
   weightsVerified         AthleteCheckin[]        @relation("WeightsVerified")
   docsVerified            AthleteCheckin[]        @relation("DocsVerified")
   refreshTokens           RefreshToken[]
+  apiKeys                 ApiKey[]
 
   @@index([email])
   @@map("users")
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  keyHash     String    @unique
+  keyPrefix   String
+  isActive    Boolean   @default(true)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("api_keys")
 }
 
 model RefreshToken {

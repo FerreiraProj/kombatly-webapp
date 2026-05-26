@@ -1,32 +1,36 @@
 import {
   Controller, Post, Patch, Get, Body, Param, UseGuards, HttpCode, HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiSecurity, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { InvoicesService } from './invoices.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtOrApiKeyGuard } from '../auth/guards/jwt-or-api-key.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { PaymentMethod } from '@taekwombats/database';
+import { GenerateInvoiceDto } from './dto/generate-invoice.dto';
+import { PayInvoiceDto } from './dto/pay-invoice.dto';
 
 @ApiTags('invoices')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@ApiSecurity('apiKey')
+@UseGuards(JwtOrApiKeyGuard)
 @Controller()
 export class InvoicesController {
   constructor(private service: InvoicesService) {}
 
-  // Generate invoice for a club in a tournament
   @Post('tournaments/:tournamentId/invoices')
+  @ApiOperation({ summary: 'Generate invoice for a club in a tournament' })
+  @ApiBody({ type: GenerateInvoiceDto })
+  @ApiResponse({ status: 201, description: 'Invoice generated.' })
   generate(
     @CurrentUser() user: { id: string },
     @Param('tournamentId') tournamentId: string,
-    @Body('clubUserId') clubUserId: string,
-    @Body('notes') notes?: string,
+    @Body() dto: GenerateInvoiceDto,
   ): Promise<any> {
-    return this.service.generate(user.id, tournamentId, clubUserId, notes);
+    return this.service.generate(user.id, tournamentId, dto.clubUserId, dto.notes);
   }
 
-  // List invoices for a tournament (promoter)
   @Get('tournaments/:tournamentId/invoices')
+  @ApiOperation({ summary: 'List invoices for a tournament (promoter)' })
+  @ApiResponse({ status: 200, description: 'List of invoices.' })
   findForTournament(
     @CurrentUser() user: { id: string },
     @Param('tournamentId') tournamentId: string,
@@ -34,14 +38,16 @@ export class InvoicesController {
     return this.service.findForTournament(user.id, tournamentId);
   }
 
-  // My invoices (club view)
   @Get('invoices/me')
+  @ApiOperation({ summary: 'List my invoices (club view)' })
+  @ApiResponse({ status: 200, description: 'List of invoices.' })
   findMine(@CurrentUser() user: { id: string }): Promise<any[]> {
     return this.service.findMine(user.id);
   }
 
-  // Single invoice
   @Get('invoices/:id')
+  @ApiOperation({ summary: 'Get a single invoice' })
+  @ApiResponse({ status: 200, description: 'Invoice detail.' })
   findOne(
     @CurrentUser() user: { id: string },
     @Param('id') id: string,
@@ -49,19 +55,22 @@ export class InvoicesController {
     return this.service.findOne(user.id, id);
   }
 
-  // Mark as paid
   @Patch('invoices/:id/pay')
+  @ApiOperation({ summary: 'Mark invoice as paid' })
+  @ApiBody({ type: PayInvoiceDto })
+  @ApiResponse({ status: 200, description: 'Invoice marked as paid.' })
   markPaid(
     @CurrentUser() user: { id: string },
     @Param('id') id: string,
-    @Body('paymentMethod') paymentMethod: PaymentMethod,
+    @Body() dto: PayInvoiceDto,
   ): Promise<any> {
-    return this.service.markPaid(user.id, id, paymentMethod);
+    return this.service.markPaid(user.id, id, dto.paymentMethod);
   }
 
-  // Cancel invoice
   @Patch('invoices/:id/cancel')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cancel an invoice' })
+  @ApiResponse({ status: 200, description: 'Invoice cancelled.' })
   cancel(
     @CurrentUser() user: { id: string },
     @Param('id') id: string,
