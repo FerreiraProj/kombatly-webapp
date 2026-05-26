@@ -57,12 +57,14 @@ export class AuthController {
   }
 
   private setRefreshCookie(res: Response, token: string) {
+    const cookieDomain = process.env.COOKIE_DOMAIN;
     res.cookie('refresh_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/',
+      ...(cookieDomain && { domain: cookieDomain }),
     });
   }
 }
