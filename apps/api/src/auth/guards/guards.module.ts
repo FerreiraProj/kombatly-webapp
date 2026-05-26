@@ -7,6 +7,6 @@ import { JwtOrApiKeyGuard } from './jwt-or-api-key.guard';
 @Module({
   imports: [AuthModule],
   providers: [ApiKeyGuard, JwtOrApiKeyGuard],
-  exports: [ApiKeyGuard, JwtOrApiKeyGuard],
+  exports: [ApiKeyGuard, JwtOrApiKeyGuard, AuthModule],
 })
 export class GuardsModule {}
