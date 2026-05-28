@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import {
   ChevronLeft, Trophy, Download, Loader2, AlertCircle, Filter,
   ChevronRight, Swords,
@@ -12,8 +13,6 @@ import {
 } from '@/lib/api/brackets';
 import { tournamentsApi } from '@/lib/api/tournaments';
 
-// ── Status colours ────────────────────────────────────────────────────────────
-
 const STATUS_CLS: Record<string, string> = {
   SCHEDULED: 'text-muted-foreground',
   ONGOING:   'text-primary',
@@ -21,11 +20,12 @@ const STATUS_CLS: Record<string, string> = {
   CANCELLED: 'text-destructive line-through opacity-50',
 };
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+type TFunc = ReturnType<typeof useTranslations<'brackets'>>;
 
 export default function BracketsPage() {
   const { id: tournamentId } = useParams<{ id: string }>();
   const router = useRouter();
+  const t = useTranslations('brackets');
 
   const [combats, setCombats] = useState<Combat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +58,7 @@ export default function BracketsPage() {
       setBracketsGenerated(true);
     } catch (e: any) {
       const msg = e?.response?.data?.message;
-      setGenerateError(Array.isArray(msg) ? msg.join(', ') : msg ?? 'Failed to generate brackets');
+      setGenerateError(Array.isArray(msg) ? msg.join(', ') : msg ?? t('failedGenerate'));
     } finally {
       setGenerating(false);
     }
@@ -95,14 +95,14 @@ export default function BracketsPage() {
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
       >
         <ChevronLeft className="h-3.5 w-3.5" />
-        Tournament
+        {t('backToTournament')}
       </Link>
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Competition Draw</p>
-          <h1 className="font-heading text-4xl text-foreground sm:text-5xl">BRACKETS</h1>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">{t('competitionDraw')}</p>
+          <h1 className="font-heading text-4xl text-foreground sm:text-5xl">{t('title')}</h1>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -117,7 +117,7 @@ export default function BracketsPage() {
               ) : (
                 <Download className="h-4 w-4" />
               )}
-              Export PDF
+              {t('exportPdf')}
             </button>
           )}
           <button
@@ -130,7 +130,7 @@ export default function BracketsPage() {
             ) : (
               <Swords className="h-4 w-4" />
             )}
-            {bracketsGenerated ? 'Regenerate' : 'Generate Brackets'}
+            {bracketsGenerated ? t('regenerate') : t('generate')}
           </button>
         </div>
       </div>
@@ -143,7 +143,7 @@ export default function BracketsPage() {
       )}
 
       {!bracketsGenerated ? (
-        <EmptyState onGenerate={handleGenerate} generating={generating} />
+        <EmptyState t={t} onGenerate={handleGenerate} generating={generating} />
       ) : (
         <>
           {/* Category filter */}
@@ -158,7 +158,7 @@ export default function BracketsPage() {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                All Categories
+                {t('allCategories')}
               </button>
               {categories.map(({ categoryId, category }) => (
                 <button
@@ -178,9 +178,9 @@ export default function BracketsPage() {
 
           {/* Bracket view */}
           {selectedCategoryId ? (
-            <BracketTree rounds={rounds} />
+            <BracketTree t={t} rounds={rounds} />
           ) : (
-            <CategoryList categories={categories} onSelect={setSelectedCategoryId} />
+            <CategoryList t={t} categories={categories} onSelect={setSelectedCategoryId} />
           )}
         </>
       )}
@@ -188,12 +188,12 @@ export default function BracketsPage() {
   );
 }
 
-// ── Category summary list (all-categories view) ───────────────────────────────
-
 function CategoryList({
+  t,
   categories,
   onSelect,
 }: {
+  t: TFunc;
   categories: ReturnType<typeof groupByCategory>;
   onSelect: (id: string) => void;
 }) {
@@ -218,7 +218,7 @@ function CategoryList({
                   {categoryLabel(category ?? undefined)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {combats.length} combats · {totalRounds} round{totalRounds !== 1 ? 's' : ''}
+                  {t('combatStats', { combats: combats.length, rounds: totalRounds })}
                 </p>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0 mt-0.5" />
@@ -227,8 +227,8 @@ function CategoryList({
             {/* Progress bar */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Progress</span>
-                <span>{finished}/{combats.length} done</span>
+                <span>{t('progress')}</span>
+                <span>{t('progressDone', { done: finished, total: combats.length })}</span>
               </div>
               <div className="h-1.5 w-full rounded-full bg-border overflow-hidden">
                 <div
@@ -253,12 +253,10 @@ function CategoryList({
   );
 }
 
-// ── Bracket tree (single-elimination horizontal layout) ───────────────────────
-
-function BracketTree({ rounds }: { rounds: ReturnType<typeof groupIntoRounds> }) {
+function BracketTree({ t, rounds }: { t: TFunc; rounds: ReturnType<typeof groupIntoRounds> }) {
   if (rounds.length === 0) {
     return (
-      <p className="py-12 text-center text-sm text-muted-foreground">No combats in this category</p>
+      <p className="py-12 text-center text-sm text-muted-foreground">{t('noCombatsInCategory')}</p>
     );
   }
 
@@ -267,28 +265,24 @@ function BracketTree({ rounds }: { rounds: ReturnType<typeof groupIntoRounds> })
       <div className="flex gap-0 min-w-max">
         {rounds.map((round, ri) => (
           <div key={round.roundNumber} className="flex flex-col">
-            {/* Round header */}
             <div className="mb-3 px-4 text-center">
               <p className="text-xs uppercase tracking-widest text-muted-foreground">
                 {roundLabel(round.roundType)}
               </p>
             </div>
 
-            {/* Combat cards, vertically centred with connector lines */}
             <div
               className="flex flex-col justify-around gap-0"
               style={{ minHeight: `${Math.max(round.combats.length, 1) * 100}px` }}
             >
               {round.combats.map((combat, ci) => (
                 <div key={combat.id} className="relative flex items-center">
-                  {/* Connector line coming IN (from left) */}
                   {ri > 0 && (
                     <div className="absolute left-0 top-1/2 w-4 h-px bg-border -translate-x-4" />
                   )}
 
-                  <CombatCard combat={combat} />
+                  <CombatCard t={t} combat={combat} />
 
-                  {/* Connector line going OUT (to right), except last round */}
                   {ri < rounds.length - 1 && (
                     <div className="absolute right-0 top-1/2 w-4 h-px bg-border translate-x-4" />
                   )}
@@ -302,9 +296,7 @@ function BracketTree({ rounds }: { rounds: ReturnType<typeof groupIntoRounds> })
   );
 }
 
-// ── Single combat card ────────────────────────────────────────────────────────
-
-function CombatCard({ combat }: { combat: Combat }) {
+function CombatCard({ t, combat }: { t: TFunc; combat: Combat }) {
   const red = combat.redAthlete;
   const blue = combat.blueAthlete;
   const isFinished = combat.status === 'FINISHED';
@@ -316,7 +308,6 @@ function CombatCard({ combat }: { combat: Combat }) {
         isOngoing ? 'border-primary/50 shadow-sm shadow-primary/10' : 'border-border'
       }`}
     >
-      {/* Combat number + area */}
       <div className="flex items-center justify-between border-b border-border px-2.5 py-1">
         <span className="text-muted-foreground">#{combat.combatNumber}</span>
         {combat.area && (
@@ -325,12 +316,11 @@ function CombatCard({ combat }: { combat: Combat }) {
         {isOngoing && (
           <span className="flex items-center gap-1 text-primary font-medium">
             <span className="live-dot" />
-            Live
+            {t('liveLabel')}
           </span>
         )}
       </div>
 
-      {/* Red athlete */}
       <AthleteRow
         name={red ? `${red.athlete.firstName} ${red.athlete.lastName}` : 'BYE'}
         club={red?.club?.name}
@@ -342,9 +332,8 @@ function CombatCard({ combat }: { combat: Combat }) {
 
       <div className="h-px bg-border" />
 
-      {/* Blue athlete */}
       <AthleteRow
-        name={blue ? `${blue.athlete.firstName} ${blue.athlete.lastName}` : 'TBD'}
+        name={blue ? `${blue.athlete.firstName} ${blue.athlete.lastName}` : t('tbd')}
         club={blue?.club?.name}
         score={combat.blueScore}
         isWinner={isFinished && combat.winnerId === combat.blueAthleteId}
@@ -403,15 +392,13 @@ function AthleteRow({
   );
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────────
-
-function EmptyState({ onGenerate, generating }: { onGenerate: () => void; generating: boolean }) {
+function EmptyState({ t, onGenerate, generating }: { t: TFunc; onGenerate: () => void; generating: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center rounded-lg border border-dashed border-border">
       <Swords className="h-14 w-14 text-muted-foreground/20 mb-5" />
-      <h2 className="font-heading text-2xl text-muted-foreground">NO BRACKETS YET</h2>
+      <h2 className="font-heading text-2xl text-muted-foreground">{t('noBracketsTitle')}</h2>
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-        Make sure athletes are checked in and registered, then generate the draw.
+        {t('noBracketsEmptyDesc')}
       </p>
       <button
         onClick={onGenerate}
@@ -423,7 +410,7 @@ function EmptyState({ onGenerate, generating }: { onGenerate: () => void; genera
         ) : (
           <Swords className="h-4 w-4" />
         )}
-        Generate Brackets
+        {t('generate')}
       </button>
     </div>
   );

@@ -2,49 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ChevronLeft, ChevronRight, Check, Trophy, Settings, Eye, Tag } from 'lucide-react';
 import { tournamentsApi, WeightCategory, Grade, CreateTournamentDto } from '@/lib/api/tournaments';
-
-// ── Zod schema ──────────────────────────────────────────────────────────────
-
-const schema = z.object({
-  // Step 1 — General
-  name: z.string().min(3, 'Name must be at least 3 characters'),
-  description: z.string().optional(),
-  startDate: z.string().min(1, 'Start date is required'),
-  endDate: z.string().optional(),
-  registrationDeadline: z.string().min(1, 'Registration deadline is required'),
-  startTime: z.string().min(1, 'Start time is required'),
-  // Step 2 — Organisation
-  numAreas: z.coerce.number().int().min(1).max(20),
-  drawType: z.enum(['random', 'ranking']),
-  numRounds: z.coerce.number().int().min(1).max(10),
-  hasVestLimitation: z.boolean(),
-  vestQty1: z.coerce.number().int().min(0).max(99).optional(),
-  vestQty2: z.coerce.number().int().min(0).max(99).optional(),
-  vestQty3: z.coerce.number().int().min(0).max(99).optional(),
-  vestQty4: z.coerce.number().int().min(0).max(99).optional(),
-  categoryIds: z.array(z.string()).optional(),
-  // Step 3 — Visibility
-  athletesVisible: z.boolean(),
-  drawVisible: z.boolean(),
-  areasVisible: z.boolean(),
-  // Step 4 — Branding (optional, file handled separately)
-});
-
-type FormValues = z.infer<typeof schema>;
-
-// ── Steps definition ─────────────────────────────────────────────────────────
-
-const STEPS = [
-  { id: 1, label: 'General', icon: Trophy },
-  { id: 2, label: 'Organisation', icon: Settings },
-  { id: 3, label: 'Visibility', icon: Eye },
-  { id: 4, label: 'Branding', icon: Tag },
-];
 
 // ── Category selector helpers ─────────────────────────────────────────────────
 
@@ -64,11 +27,42 @@ function groupByGradeGender(cats: WeightCategory[]) {
 
 export default function CreateTournamentPage() {
   const router = useRouter();
+  const t = useTranslations('createTournament');
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [weightCategories, setWeightCategories] = useState<WeightCategory[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(new Set());
+
+  const schema = z.object({
+    name: z.string().min(3, t('errors.nameTooShort')),
+    description: z.string().optional(),
+    startDate: z.string().min(1, t('errors.startDateRequired')),
+    endDate: z.string().optional(),
+    registrationDeadline: z.string().min(1, t('errors.deadlineRequired')),
+    startTime: z.string().min(1, t('errors.startTimeRequired')),
+    numAreas: z.coerce.number().int().min(1).max(20),
+    drawType: z.enum(['random', 'ranking']),
+    numRounds: z.coerce.number().int().min(1).max(10),
+    hasVestLimitation: z.boolean(),
+    vestQty1: z.coerce.number().int().min(0).max(99).optional(),
+    vestQty2: z.coerce.number().int().min(0).max(99).optional(),
+    vestQty3: z.coerce.number().int().min(0).max(99).optional(),
+    vestQty4: z.coerce.number().int().min(0).max(99).optional(),
+    categoryIds: z.array(z.string()).optional(),
+    athletesVisible: z.boolean(),
+    drawVisible: z.boolean(),
+    areasVisible: z.boolean(),
+  });
+
+  type FormValues = z.infer<typeof schema>;
+
+  const STEPS = [
+    { id: 1, label: t('stepGeneral'), icon: Trophy },
+    { id: 2, label: t('stepOrganisation'), icon: Settings },
+    { id: 3, label: t('stepVisibility'), icon: Eye },
+    { id: 4, label: t('stepBranding'), icon: Tag },
+  ];
 
   const {
     register,
@@ -166,19 +160,25 @@ export default function CreateTournamentPage() {
       router.push(`/tournaments/${tournament.id}`);
     } catch (e: any) {
       const msg = e?.response?.data?.message;
-      setError(Array.isArray(msg) ? msg.join(' — ') : (msg ?? 'Something went wrong. Please try again.'));
+      setError(Array.isArray(msg) ? msg.join(' — ') : (msg ?? t('errors.generic')));
       setSubmitting(false);
     }
   }
 
   const grouped = groupByGradeGender(weightCategories);
 
+  const visibilityOptions = [
+    { name: 'athletesVisible' as const, label: t('athletesListLabel'), desc: t('athletesListDesc') },
+    { name: 'drawVisible' as const, label: t('drawBracketsLabel'), desc: t('drawBracketsDesc') },
+    { name: 'areasVisible' as const, label: t('areaAssignmentsLabel'), desc: t('areaAssignmentsDesc') },
+  ];
+
   return (
     <div className="mx-auto max-w-3xl animate-fade-in">
       {/* Header */}
       <div className="mb-8">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">New Tournament</p>
-        <h1 className="font-heading text-4xl text-foreground sm:text-5xl">CREATE TOURNAMENT</h1>
+        <p className="text-xs uppercase tracking-widest text-muted-foreground">{t('subtitle')}</p>
+        <h1 className="font-heading text-4xl text-foreground sm:text-5xl">{t('title')}</h1>
       </div>
 
       {/* Stepper */}
@@ -226,35 +226,35 @@ export default function CreateTournamentPage() {
           {/* ── Step 1: General ── */}
           {step === 1 && (
             <div className="space-y-5">
-              <h2 className="font-heading text-2xl text-foreground">GENERAL INFORMATION</h2>
+              <h2 className="font-heading text-2xl text-foreground">{t('generalTitle')}</h2>
 
-              <Field label="Tournament Name" error={errors.name?.message} required>
+              <Field label={t('tournamentName')} error={errors.name?.message} required>
                 <input {...register('name')} placeholder="e.g. Spring Open 2025" className={inputCls(!!errors.name)} />
               </Field>
 
-              <Field label="Description" error={errors.description?.message}>
+              <Field label={t('description')} error={errors.description?.message}>
                 <textarea
                   {...register('description')}
                   rows={3}
-                  placeholder="Describe the tournament..."
+                  placeholder={t('descriptionPlaceholder')}
                   className={inputCls(false) + ' resize-none'}
                 />
               </Field>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Start Date" error={errors.startDate?.message} required>
+                <Field label={t('startDate')} error={errors.startDate?.message} required>
                   <input type="date" {...register('startDate')} className={inputCls(!!errors.startDate)} />
                 </Field>
-                <Field label="End Date" error={errors.endDate?.message}>
+                <Field label={t('endDate')} error={errors.endDate?.message}>
                   <input type="date" {...register('endDate')} className={inputCls(!!errors.endDate)} />
                 </Field>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Registration Deadline" error={errors.registrationDeadline?.message} required>
+                <Field label={t('registrationDeadline')} error={errors.registrationDeadline?.message} required>
                   <input type="date" {...register('registrationDeadline')} className={inputCls(!!errors.registrationDeadline)} />
                 </Field>
-                <Field label="Start Time" error={errors.startTime?.message} required>
+                <Field label={t('startTime')} error={errors.startTime?.message} required>
                   <input type="time" {...register('startTime')} className={inputCls(!!errors.startTime)} />
                 </Field>
               </div>
@@ -264,19 +264,19 @@ export default function CreateTournamentPage() {
           {/* ── Step 2: Organisation ── */}
           {step === 2 && (
             <div className="space-y-6">
-              <h2 className="font-heading text-2xl text-foreground">ORGANISATION</h2>
+              <h2 className="font-heading text-2xl text-foreground">{t('organisationTitle')}</h2>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <Field label="Competition Areas" error={errors.numAreas?.message} required>
+                <Field label={t('competitionAreas')} error={errors.numAreas?.message} required>
                   <input type="number" min={1} max={20} {...register('numAreas')} className={inputCls(!!errors.numAreas)} />
                 </Field>
-                <Field label="Draw Type" error={errors.drawType?.message} required>
+                <Field label={t('drawType')} error={errors.drawType?.message} required>
                   <select {...register('drawType')} className={inputCls(!!errors.drawType)}>
-                    <option value="random">Random</option>
-                    <option value="ranking">By Ranking</option>
+                    <option value="random">{t('drawRandom')}</option>
+                    <option value="ranking">{t('drawByRanking')}</option>
                   </select>
                 </Field>
-                <Field label="Rounds" error={errors.numRounds?.message} required>
+                <Field label={t('rounds')} error={errors.numRounds?.message} required>
                   <input type="number" min={1} max={10} {...register('numRounds')} className={inputCls(!!errors.numRounds)} />
                 </Field>
               </div>
@@ -300,7 +300,7 @@ export default function CreateTournamentPage() {
                           }`}
                         />
                       </div>
-                      <span className="text-sm text-foreground">Vest quantity limitation per area</span>
+                      <span className="text-sm text-foreground">{t('vestQtyLabel')}</span>
                     </label>
                   )}
                 />
@@ -308,7 +308,7 @@ export default function CreateTournamentPage() {
                 {hasVestLimitation && (
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 rounded-lg border border-border bg-surface-elevated p-4">
                     {[1, 2, 3, 4].map((v) => (
-                      <Field key={v} label={`Vest ${v} qty`}>
+                      <Field key={v} label={t('vestQty', { num: v })}>
                         <input
                           type="number"
                           min={0}
@@ -326,9 +326,9 @@ export default function CreateTournamentPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-foreground">
-                    Weight Categories
+                    {t('weightCategories')}
                     <span className="ml-2 text-xs text-muted-foreground">
-                      ({selectedCategoryIds.size} selected)
+                      ({t('selected', { count: selectedCategoryIds.size })})
                     </span>
                   </label>
                   <button
@@ -342,7 +342,7 @@ export default function CreateTournamentPage() {
                     }}
                     className="text-xs text-primary hover:underline"
                   >
-                    {selectedCategoryIds.size === weightCategories.length ? 'Deselect all' : 'Select all'}
+                    {selectedCategoryIds.size === weightCategories.length ? t('deselectAll') : t('selectAll')}
                   </button>
                 </div>
 
@@ -401,30 +401,11 @@ export default function CreateTournamentPage() {
           {/* ── Step 3: Visibility ── */}
           {step === 3 && (
             <div className="space-y-6">
-              <h2 className="font-heading text-2xl text-foreground">VISIBILITY SETTINGS</h2>
-              <p className="text-sm text-muted-foreground">
-                Control what spectators and registered athletes can see on the public tournament page.
-                You can change these settings at any time.
-              </p>
+              <h2 className="font-heading text-2xl text-foreground">{t('visibilityTitle')}</h2>
+              <p className="text-sm text-muted-foreground">{t('visibilityDesc')}</p>
 
               <div className="space-y-4 rounded-lg border border-border bg-surface-elevated p-5">
-                {[
-                  {
-                    name: 'athletesVisible' as const,
-                    label: 'Registered Athletes List',
-                    desc: 'Spectators can see the list of registered athletes',
-                  },
-                  {
-                    name: 'drawVisible' as const,
-                    label: 'Draw / Brackets',
-                    desc: 'Spectators can see the generated brackets',
-                  },
-                  {
-                    name: 'areasVisible' as const,
-                    label: 'Area Assignments',
-                    desc: 'Spectators can see which area each category is assigned to',
-                  },
-                ].map(({ name, label, desc }) => (
+                {visibilityOptions.map(({ name, label, desc }) => (
                   <Controller
                     key={name}
                     control={control}
@@ -454,9 +435,11 @@ export default function CreateTournamentPage() {
               </div>
 
               <div className="rounded-lg border border-border bg-surface-elevated p-4 text-sm text-muted-foreground">
-                <strong className="text-foreground">Note:</strong> Your tournament will be created as{' '}
-                <span className="badge-draft">Draft</span> and won't be publicly visible until you
-                manually set it to <span className="badge-public">Open</span>.
+                <strong className="text-foreground">Note:</strong>{' '}
+                {t.rich('visibilityNote', {
+                  draft: () => <span className="badge-draft">Draft</span>,
+                  open: () => <span className="badge-public">Open</span>,
+                })}
               </div>
             </div>
           )}
@@ -464,22 +447,20 @@ export default function CreateTournamentPage() {
           {/* ── Step 4: Branding ── */}
           {step === 4 && (
             <div className="space-y-6">
-              <h2 className="font-heading text-2xl text-foreground">BRANDING</h2>
-              <p className="text-sm text-muted-foreground">
-                Upload a flyer or sponsor logos. This step is optional — you can add these later from the tournament settings.
-              </p>
+              <h2 className="font-heading text-2xl text-foreground">{t('brandingTitle')}</h2>
+              <p className="text-sm text-muted-foreground">{t('brandingDesc')}</p>
 
               <div className="rounded-lg border border-dashed border-border bg-surface-elevated p-8 text-center">
                 <Trophy className="mx-auto h-10 w-10 text-muted-foreground/30 mb-3" />
-                <p className="text-sm font-medium text-foreground">Tournament Flyer</p>
-                <p className="mt-1 text-xs text-muted-foreground">PNG, JPG or PDF up to 10MB</p>
+                <p className="text-sm font-medium text-foreground">{t('tournamentFlyer')}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('flyerFormats')}</p>
                 <button
                   type="button"
                   className="mt-4 rounded border border-border px-4 py-2 text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors"
                 >
-                  Choose File
+                  {t('chooseFile')}
                 </button>
-                <p className="mt-2 text-xs text-muted-foreground">File upload will be available after creation</p>
+                <p className="mt-2 text-xs text-muted-foreground">{t('fileUploadLater')}</p>
               </div>
 
               {error && (
@@ -499,7 +480,7 @@ export default function CreateTournamentPage() {
             className="flex items-center gap-2 rounded border border-border px-5 py-2.5 text-sm font-medium text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
-            {step === 1 ? 'Cancel' : 'Back'}
+            {step === 1 ? t('cancel') : t('back')}
           </button>
 
           {step < 4 ? (
@@ -508,7 +489,7 @@ export default function CreateTournamentPage() {
               onClick={goNext}
               className="flex items-center gap-2 rounded bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
             >
-              Next
+              {t('next')}
               <ChevronRight className="h-4 w-4" />
             </button>
           ) : (
@@ -520,12 +501,12 @@ export default function CreateTournamentPage() {
               {submitting ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  Creating...
+                  {t('creating')}
                 </>
               ) : (
                 <>
                   <Check className="h-4 w-4" />
-                  Create Tournament
+                  {t('createTournament')}
                 </>
               )}
             </button>

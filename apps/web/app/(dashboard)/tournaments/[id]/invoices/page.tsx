@@ -1,8 +1,9 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import {
   ChevronLeft, FileText, Plus, Check, X, ChevronDown, ChevronUp,
   Loader2, AlertCircle, DollarSign, Users,
@@ -13,7 +14,7 @@ import {
 import { clubsApi } from '@/lib/api/clubs';
 import { tournamentsApi } from '@/lib/api/tournaments';
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+type TFunc = ReturnType<typeof useTranslations<'invoices'>>;
 
 const STATUS_CLS: Record<string, string> = {
   PENDING:   'badge-draft',
@@ -22,19 +23,18 @@ const STATUS_CLS: Record<string, string> = {
 };
 
 function formatDate(iso?: string) {
-  if (!iso) return 'â€”';
+  if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function formatAmount(n: number) {
-  return `â‚¬${Number(n).toFixed(2)}`;
+  return `€${Number(n).toFixed(2)}`;
 }
-
-// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function InvoicesPage() {
   const { id: tournamentId } = useParams<{ id: string }>();
   const router = useRouter();
+  const t = useTranslations('invoices');
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,38 +76,38 @@ export default function InvoicesPage() {
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
       >
         <ChevronLeft className="h-3.5 w-3.5" />
-        Tournament
+        {t('backToTournament')}
       </Link>
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Finance</p>
-          <h1 className="font-heading text-4xl text-foreground sm:text-5xl">INVOICE NOTES</h1>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">{t('finance')}</p>
+          <h1 className="font-heading text-4xl text-foreground sm:text-5xl">{t('invoiceNotes')}</h1>
         </div>
         <button
           onClick={() => setShowGenerator((v) => !v)}
           className="flex items-center gap-2 rounded bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors shrink-0 mt-1"
         >
           <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">New Invoice</span>
+          <span className="hidden sm:inline">{t('newInvoice')}</span>
         </button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="stat-card">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Total Invoiced</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">{t('totalInvoiced')}</p>
           <p className="mt-2 font-heading text-4xl text-gold">
             {formatAmount(totalRevenue + totalPending)}
           </p>
         </div>
         <div className="stat-card">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Collected</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">{t('collected')}</p>
           <p className="mt-2 font-heading text-4xl text-success">{formatAmount(totalRevenue)}</p>
         </div>
         <div className="stat-card">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Outstanding</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">{t('outstanding')}</p>
           <p className="mt-2 font-heading text-4xl text-foreground">{formatAmount(totalPending)}</p>
         </div>
       </div>
@@ -115,6 +115,7 @@ export default function InvoicesPage() {
       {/* Generator panel */}
       {showGenerator && (
         <InvoiceGenerator
+          t={t}
           tournamentId={tournamentId}
           onCreated={() => { reload(); setShowGenerator(false); }}
           onCancel={() => setShowGenerator(false)}
@@ -125,9 +126,9 @@ export default function InvoicesPage() {
       {invoices.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16 text-center">
           <FileText className="h-12 w-12 text-muted-foreground/20 mb-4" />
-          <h2 className="font-heading text-xl text-muted-foreground">NO INVOICES YET</h2>
+          <h2 className="font-heading text-xl text-muted-foreground">{t('noInvoicesTitle')}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Create an invoice note for each club after registrations are complete
+            {t('noInvoicesEmptyDesc')}
           </p>
         </div>
       ) : (
@@ -135,6 +136,7 @@ export default function InvoicesPage() {
           {invoices.map((inv) => (
             <InvoiceCard
               key={inv.id}
+              t={t}
               invoice={inv}
               onPaid={(updated) => setInvoices((prev) => prev.map((i) => i.id === updated.id ? updated : i))}
               onCancelled={(updated) => setInvoices((prev) => prev.map((i) => i.id === updated.id ? updated : i))}
@@ -146,13 +148,13 @@ export default function InvoicesPage() {
   );
 }
 
-// â”€â”€ Invoice generator panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 function InvoiceGenerator({
+  t,
   tournamentId,
   onCreated,
   onCancel,
 }: {
+  t: TFunc;
   tournamentId: string;
   onCreated: () => void;
   onCancel: () => void;
@@ -165,15 +167,7 @@ function InvoiceGenerator({
   const [loadingClubs, setLoadingClubs] = useState(true);
 
   useEffect(() => {
-    // Fetch clubs that have registrations in this tournament
     tournamentsApi.getRegistrations(tournamentId).then((regs) => {
-      const seen = new Map<string, { userId: string; name: string; sigla: string }>();
-      for (const reg of regs) {
-        if (reg.club && reg.athleteId && !seen.has(reg.athleteId)) {
-          // We need the club's owner userId â€” use clubId for now and look it up
-        }
-      }
-      // Fallback: load all public clubs
       clubsApi.getPublic().then((allClubs) => {
         setClubs(allClubs.map((c: any) => ({
           userId: c.userId ?? '',
@@ -185,7 +179,7 @@ function InvoiceGenerator({
   }, [tournamentId]);
 
   async function handleSubmit() {
-    if (!selectedUserId) { setError('Please select a club'); return; }
+    if (!selectedUserId) { setError(t('errorSelectClub')); return; }
     setSubmitting(true);
     setError('');
     try {
@@ -193,7 +187,7 @@ function InvoiceGenerator({
       onCreated();
     } catch (e: any) {
       const msg = e?.response?.data?.message;
-      setError(Array.isArray(msg) ? msg.join(', ') : msg ?? 'Failed to create invoice');
+      setError(Array.isArray(msg) ? msg.join(', ') : msg ?? t('errorFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -201,16 +195,16 @@ function InvoiceGenerator({
 
   return (
     <div className="rounded-lg border border-primary/30 bg-surface p-5 space-y-4">
-      <h3 className="font-heading text-lg text-foreground">NEW INVOICE NOTE</h3>
+      <h3 className="font-heading text-lg text-foreground">{t('newInvoiceTitle')}</h3>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Club <span className="text-primary">*</span>
+            {t('club')} <span className="text-primary">*</span>
           </label>
           {loadingClubs ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading clubs...
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('loadingClubs')}
             </div>
           ) : (
             <select
@@ -218,10 +212,10 @@ function InvoiceGenerator({
               onChange={(e) => setSelectedUserId(e.target.value)}
               className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
             >
-              <option value="">Select club...</option>
+              <option value="">{t('selectClub')}</option>
               {clubs.map((c) => (
                 <option key={c.userId} value={c.userId}>
-                  {c.sigla} â€” {c.name}
+                  {c.sigla} — {c.name}
                 </option>
               ))}
             </select>
@@ -230,12 +224,12 @@ function InvoiceGenerator({
 
         <div className="space-y-1.5">
           <label className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Notes (optional)
+            {t('notesOptional')}
           </label>
           <input
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="e.g. Transfer due by 15 May"
+            placeholder={t('notesPlaceholder')}
             className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
           />
         </div>
@@ -254,7 +248,7 @@ function InvoiceGenerator({
           onClick={onCancel}
           className="rounded border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          Cancel
+          {t('cancel')}
         </button>
         <button
           type="button"
@@ -263,20 +257,20 @@ function InvoiceGenerator({
           className="flex items-center gap-2 rounded bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-          Generate Invoice
+          {t('generateInvoice')}
         </button>
       </div>
     </div>
   );
 }
 
-// â”€â”€ Invoice card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 function InvoiceCard({
+  t,
   invoice,
   onPaid,
   onCancelled,
 }: {
+  t: TFunc;
   invoice: Invoice;
   onPaid: (inv: Invoice) => void;
   onCancelled: (inv: Invoice) => void;
@@ -298,7 +292,7 @@ function InvoiceCard({
   }
 
   async function handleCancel() {
-    if (!confirm('Cancel this invoice? Registrations will be unlinked.')) return;
+    if (!confirm(t('cancelConfirm'))) return;
     setActioning(true);
     try {
       const updated = await invoicesApi.cancel(invoice.id);
@@ -328,10 +322,10 @@ function InvoiceCard({
           <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Users className="h-3 w-3" />
-              {invoice.numAthletes} athlete{invoice.numAthletes !== 1 ? 's' : ''}
+              {t('athleteCount', { count: invoice.numAthletes })}
             </span>
-            <span>Issued {formatDate(invoice.issuedAt)}</span>
-            {invoice.paidAt && <span>Paid {formatDate(invoice.paidAt)}</span>}
+            <span>{t('issuedDate', { date: formatDate(invoice.issuedAt) })}</span>
+            {invoice.paidAt && <span>{t('paidDate', { date: formatDate(invoice.paidAt) })}</span>}
             {invoice.paymentMethod && (
               <span>{PAYMENT_METHOD_LABELS[invoice.paymentMethod]}</span>
             )}
@@ -349,7 +343,7 @@ function InvoiceCard({
                 className="flex items-center gap-1.5 rounded bg-success/10 px-3 py-1.5 text-xs font-semibold text-success hover:bg-success/20 transition-colors"
               >
                 <Check className="h-3.5 w-3.5" />
-                Mark Paid
+                {t('markPaid')}
               </button>
               <button
                 onClick={handleCancel}
@@ -373,7 +367,7 @@ function InvoiceCard({
       {/* Pay modal (inline) */}
       {showPayModal && (
         <div className="border-t border-border bg-surface-elevated px-5 py-4 space-y-3">
-          <p className="text-sm font-medium text-foreground">Select payment method</p>
+          <p className="text-sm font-medium text-foreground">{t('selectPaymentMethod')}</p>
           <div className="flex flex-wrap gap-2">
             {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map((m) => (
               <button
@@ -394,7 +388,7 @@ function InvoiceCard({
               onClick={() => setShowPayModal(false)}
               className="rounded border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               onClick={handleMarkPaid}
@@ -402,7 +396,7 @@ function InvoiceCard({
               className="flex items-center gap-1.5 rounded bg-success px-4 py-1.5 text-xs font-semibold text-white hover:bg-green-600 transition-colors disabled:opacity-50"
             >
               {actioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-              Confirm Payment
+              {t('confirmPayment')}
             </button>
           </div>
         </div>
@@ -412,9 +406,9 @@ function InvoiceCard({
       {expanded && invoice.registrations && invoice.registrations.length > 0 && (
         <div className="border-t border-border">
           <div className="hidden sm:grid grid-cols-12 gap-3 bg-surface-elevated px-5 py-2 text-xs uppercase tracking-widest text-muted-foreground">
-            <span className="col-span-4">Athlete</span>
-            <span className="col-span-5">Category</span>
-            <span className="col-span-3">Club</span>
+            <span className="col-span-4">{t('colAthlete')}</span>
+            <span className="col-span-5">{t('colCategory')}</span>
+            <span className="col-span-3">{t('colClub')}</span>
           </div>
           <ul className="divide-y divide-border">
             {invoice.registrations.map((reg) => (
@@ -427,19 +421,19 @@ function InvoiceCard({
                     ? reg.category.customName
                     : [
                         reg.category.grade?.names?.en,
-                        reg.category.gender?.code === 'M' ? 'Male' : reg.category.gender?.code === 'F' ? 'Female' : null,
+                        reg.category.gender?.code === 'M' ? t('genderMale') : reg.category.gender?.code === 'F' ? t('genderFemale') : null,
                         reg.category.weightCategory?.displayNames?.en ?? reg.category.weightCategory?.strWeight,
-                      ].filter(Boolean).join(' Â· ')}
+                      ].filter(Boolean).join(' · ')}
                 </div>
                 <div className="col-span-3 text-xs text-muted-foreground">
-                  {reg.club?.sigla ?? reg.club?.name ?? 'â€”'}
+                  {reg.club?.sigla ?? reg.club?.name ?? '—'}
                 </div>
               </li>
             ))}
           </ul>
           {invoice.notes && (
             <div className="border-t border-border px-5 py-3 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Notes: </span>{invoice.notes}
+              <span className="font-medium text-foreground">{t('notesLabel')}: </span>{invoice.notes}
             </div>
           )}
         </div>

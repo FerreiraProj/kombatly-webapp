@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { bracketsApi, Combat, groupByCategory, groupIntoRounds, roundLabel, categoryLabel } from '@/lib/api/brackets';
 
 export default function BracketsPrintPage() {
   const { id: tournamentId } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const categoryId = searchParams.get('categoryId') ?? undefined;
+  const t = useTranslations('brackets');
 
   const [combats, setCombats] = useState<Combat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +30,7 @@ export default function BracketsPrintPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-sm text-gray-500">Loading brackets...</p>
+        <p className="text-sm text-gray-500">{t('loadingBrackets')}</p>
       </div>
     );
   }
@@ -49,19 +51,19 @@ export default function BracketsPrintPage() {
 
       {/* Print toolbar — hidden when printing */}
       <div className="no-print fixed top-0 left-0 right-0 z-50 flex items-center justify-between gap-4 border-b bg-white px-6 py-3 shadow-sm">
-        <span className="text-sm font-medium text-gray-700">Bracket Print Preview</span>
+        <span className="text-sm font-medium text-gray-700">{t('printPreview')}</span>
         <div className="flex gap-3">
           <button
             onClick={() => window.close()}
             className="rounded border px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-50"
           >
-            Close
+            {t('close')}
           </button>
           <button
             onClick={() => window.print()}
             className="rounded bg-red-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-red-700"
           >
-            Print / Save as PDF
+            {t('printSavePdf')}
           </button>
         </div>
       </div>
@@ -78,7 +80,7 @@ export default function BracketsPrintPage() {
                   {categoryLabel(category ?? undefined)}
                 </h1>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  {catCombats.length} combat{catCombats.length !== 1 ? 's' : ''} · {rounds.length} round{rounds.length !== 1 ? 's' : ''}
+                  {t('combatStats', { combats: catCombats.length, rounds: rounds.length })}
                 </p>
               </div>
 
@@ -91,7 +93,7 @@ export default function BracketsPrintPage() {
                     </p>
                     <div className="flex flex-col justify-around gap-2" style={{ minHeight: `${Math.max(round.combats.length, 1) * 80}px` }}>
                       {round.combats.map((combat) => (
-                        <PrintCombatCard key={combat.id} combat={combat} />
+                        <PrintCombatCard key={combat.id} combat={combat} tbd={t('tbd')} />
                       ))}
                     </div>
                   </div>
@@ -103,7 +105,7 @@ export default function BracketsPrintPage() {
 
         {groups.length === 0 && (
           <div className="flex items-center justify-center py-32">
-            <p className="text-gray-400">No brackets to display</p>
+            <p className="text-gray-400">{t('noBracketsDisplay')}</p>
           </div>
         )}
       </div>
@@ -111,7 +113,7 @@ export default function BracketsPrintPage() {
   );
 }
 
-function PrintCombatCard({ combat }: { combat: Combat }) {
+function PrintCombatCard({ combat, tbd }: { combat: Combat; tbd: string }) {
   const red = combat.redAthlete;
   const blue = combat.blueAthlete;
   const isFinished = combat.status === 'FINISHED';
@@ -130,7 +132,7 @@ function PrintCombatCard({ combat }: { combat: Combat }) {
       />
       <div className="h-px bg-gray-200" />
       <PrintAthleteRow
-        name={blue ? `${blue.athlete.firstName} ${blue.athlete.lastName}` : 'TBD'}
+        name={blue ? `${blue.athlete.firstName} ${blue.athlete.lastName}` : tbd}
         isWinner={isFinished && combat.winnerId === combat.blueAthleteId}
         color="blue"
         score={combat.blueScore}

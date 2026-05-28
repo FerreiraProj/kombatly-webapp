@@ -1,16 +1,15 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import {
   ChevronLeft, UserPlus, Search, Check, X, Loader2, AlertCircle, Sparkles,
 } from 'lucide-react';
 import { tournamentsApi, Tournament, TournamentCategory } from '@/lib/api/tournaments';
 import { clubsApi, Athlete } from '@/lib/api/clubs';
 import { registrationsApi, CreateRegistrationDto } from '@/lib/api/registrations';
-
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface RegistrationRow {
   athlete: Athlete;
@@ -21,21 +20,20 @@ interface RegistrationRow {
   error: string | null;
 }
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+type TFunc = ReturnType<typeof useTranslations<'register'>>;
 
-function categoryLabel(cat: TournamentCategory): string {
+function categoryLabel(cat: TournamentCategory, t: TFunc): string {
   if (cat.isCustom) return cat.customName ?? 'Custom';
   const grade = cat.grade?.nameEn ?? '';
-  const gender = cat.gender?.code === 'M' ? 'Male' : cat.gender?.code === 'F' ? 'Female' : '';
+  const gender = cat.gender?.code === 'M' ? t('genderMale') : cat.gender?.code === 'F' ? t('genderFemale') : '';
   const weight = cat.weightCategory?.displayNameEn ?? cat.weightCategory?.strWeight ?? '';
-  return [grade, gender, weight].filter(Boolean).join(' Â· ');
+  return [grade, gender, weight].filter(Boolean).join(' · ');
 }
-
-// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function RegisterAthletesPage() {
   const { id: tournamentId } = useParams<{ id: string }>();
   const router = useRouter();
+  const t = useTranslations('register');
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
@@ -112,26 +110,24 @@ export default function RegisterAthletesPage() {
       } else {
         updateRow(row.athlete.id, {
           suggestingCategory: false,
-          error: 'No matching category found for this weight',
+          error: t('errorNoMatch'),
         });
       }
     } catch {
       updateRow(row.athlete.id, {
         suggestingCategory: false,
-        error: 'Could not suggest a category',
+        error: t('errorSuggestFailed'),
       });
     }
   }
 
   async function handleSubmit() {
-    // Validate rows
     let hasError = false;
-    const validated = rows.map((r) => {
+    rows.forEach((r) => {
       if (!r.categoryId) {
-        updateRow(r.athlete.id, { error: 'Please select a category' });
+        updateRow(r.athlete.id, { error: t('errorSelectCategory') });
         hasError = true;
       }
-      return r;
     });
     if (hasError) return;
 
@@ -150,7 +146,7 @@ export default function RegisterAthletesPage() {
       setTimeout(() => router.push(`/tournaments/${tournamentId}`), 2000);
     } catch (e: any) {
       const msg = e?.response?.data?.message;
-      setSubmitError(Array.isArray(msg) ? msg.join(', ') : msg ?? 'Registration failed');
+      setSubmitError(Array.isArray(msg) ? msg.join(', ') : msg ?? t('errorRegFailed'));
       setSubmitting(false);
     }
   }
@@ -169,11 +165,11 @@ export default function RegisterAthletesPage() {
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10 mb-4">
           <Check className="h-8 w-8 text-success" />
         </div>
-        <h2 className="font-heading text-3xl text-foreground">REGISTERED!</h2>
+        <h2 className="font-heading text-3xl text-foreground">{t('registered')}</h2>
         <p className="mt-2 text-muted-foreground">
-          {successCount} athlete{successCount !== 1 ? 's' : ''} successfully registered
+          {t('registeredSuccess', { count: successCount })}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Redirecting to tournament...</p>
+        <p className="mt-1 text-xs text-muted-foreground">{t('redirecting')}</p>
       </div>
     );
   }
@@ -188,45 +184,45 @@ export default function RegisterAthletesPage() {
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
       >
         <ChevronLeft className="h-3.5 w-3.5" />
-        {tournament?.name ?? 'Tournament'}
+        {tournament?.name ?? t('backToTournament')}
       </Link>
 
       {/* Header */}
       <div>
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">Athlete Registration</p>
-        <h1 className="font-heading text-4xl text-foreground sm:text-5xl">REGISTER ATHLETES</h1>
+        <p className="text-xs uppercase tracking-widest text-muted-foreground">{t('athleteRegistration')}</p>
+        <h1 className="font-heading text-4xl text-foreground sm:text-5xl">{t('registerAthletes')}</h1>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Left: Athlete picker */}
         <div className="lg:col-span-2 space-y-3">
           <h2 className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
-            Your Club's Athletes
+            {t('clubAthletes')}
           </h2>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search athletes..."
+              placeholder={t('searchPlaceholder')}
               className="w-full rounded border border-border bg-surface pl-8 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
             />
           </div>
 
           {athletes.length === 0 ? (
             <div className="rounded-lg border border-border bg-surface p-6 text-center">
-              <p className="text-sm text-muted-foreground">No athletes in your club yet.</p>
+              <p className="text-sm text-muted-foreground">{t('noClubAthletes')}</p>
               <Link
                 href="/athletes"
                 className="mt-2 inline-block text-xs text-primary hover:underline"
               >
-                Add athletes â†’
+                {t('addAthletesLink')}
               </Link>
             </div>
           ) : (
             <div className="max-h-[480px] overflow-y-auto rounded-lg border border-border divide-y divide-border">
               {filteredAthletes.length === 0 ? (
-                <p className="p-4 text-center text-sm text-muted-foreground">No athletes match your search</p>
+                <p className="p-4 text-center text-sm text-muted-foreground">{t('noSearchMatch')}</p>
               ) : (
                 filteredAthletes.map((athlete) => {
                   const isSelected = selectedIds.has(athlete.id);
@@ -258,7 +254,7 @@ export default function RegisterAthletesPage() {
                           {athlete.firstName} {athlete.lastName}
                         </p>
                         <p className="truncate text-xs text-muted-foreground">
-                          {athlete.grade?.nameEn ?? '—'} · {athlete.gender?.code === 'M' ? 'Male' : athlete.gender?.code === 'F' ? 'Female' : '—'}
+                          {athlete.grade?.nameEn ?? '—'} · {athlete.gender?.code === 'M' ? t('genderMale') : athlete.gender?.code === 'F' ? t('genderFemale') : '—'}
                         </p>
                       </div>
                       {!isSelected && (
@@ -276,7 +272,7 @@ export default function RegisterAthletesPage() {
         <div className="lg:col-span-3 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
-              Selected ({rows.length})
+              {t('selectedCount', { count: rows.length })}
             </h2>
             {rows.length > 0 && (
               <button
@@ -284,7 +280,7 @@ export default function RegisterAthletesPage() {
                 onClick={() => setRows([])}
                 className="text-xs text-muted-foreground hover:text-destructive transition-colors"
               >
-                Clear all
+                {t('clearAll')}
               </button>
             )}
           </div>
@@ -292,14 +288,15 @@ export default function RegisterAthletesPage() {
           {rows.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-surface py-12 text-center">
               <UserPlus className="h-10 w-10 text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">Select athletes from the list</p>
-              <p className="mt-1 text-xs text-muted-foreground">They'll appear here to configure</p>
+              <p className="text-sm text-muted-foreground">{t('selectFromList')}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t('selectFromListDesc')}</p>
             </div>
           ) : (
             <div className="space-y-3">
               {rows.map((row) => (
                 <RegistrationCard
                   key={row.athlete.id}
+                  t={t}
                   row={row}
                   categories={categories}
                   onRemove={() => removeRow(row.athlete.id)}
@@ -325,12 +322,12 @@ export default function RegisterAthletesPage() {
                 {submitting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Registering...
+                    {t('registering')}
                   </>
                 ) : (
                   <>
                     <Check className="h-4 w-4" />
-                    Register {rows.length} Athlete{rows.length !== 1 ? 's' : ''}
+                    {t('registerBtn', { count: rows.length })}
                   </>
                 )}
               </button>
@@ -342,9 +339,8 @@ export default function RegisterAthletesPage() {
   );
 }
 
-// â”€â”€ Registration card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 function RegistrationCard({
+  t,
   row,
   categories,
   onRemove,
@@ -352,6 +348,7 @@ function RegistrationCard({
   onCategoryChange,
   onSuggest,
 }: {
+  t: TFunc;
   row: RegistrationRow;
   categories: TournamentCategory[];
   onRemove: () => void;
@@ -365,7 +362,6 @@ function RegistrationCard({
     !!row.athlete.gradeId &&
     !!row.athlete.genderId;
 
-  // Filter categories by athlete's grade/gender if available
   const relevantCats = categories.filter((c) => {
     if (c.isCustom) return true;
     const gradeMatch = !row.athlete.gradeId || c.gradeId === row.athlete.gradeId;
@@ -390,7 +386,7 @@ function RegistrationCard({
               {row.athlete.firstName} {row.athlete.lastName}
             </p>
             <p className="text-xs text-muted-foreground">
-              {row.athlete.grade?.nameEn ?? '—'} · {row.athlete.gender?.code === 'M' ? 'Male' : row.athlete.gender?.code === 'F' ? 'Female' : '—'}
+              {row.athlete.grade?.nameEn ?? '—'} · {row.athlete.gender?.code === 'M' ? t('genderMale') : row.athlete.gender?.code === 'F' ? t('genderFemale') : '—'}
             </p>
           </div>
         </div>
@@ -405,10 +401,9 @@ function RegistrationCard({
 
       {/* Weight + category row */}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
-        {/* Weight input */}
         <div className="sm:col-span-2 space-y-1">
           <label className="block text-xs text-muted-foreground uppercase tracking-wider">
-            Weight (kg)
+            {t('weightKg')}
           </label>
           <div className="flex gap-1.5">
             <input
@@ -418,14 +413,14 @@ function RegistrationCard({
               max="200"
               value={row.weight}
               onChange={(e) => onWeightChange(e.target.value)}
-              placeholder="e.g. 67.5"
+              placeholder={t('weightPlaceholder')}
               className="flex-1 min-w-0 rounded border border-border bg-surface-elevated px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
             />
             <button
               type="button"
               onClick={onSuggest}
               disabled={!canSuggest || row.suggestingCategory}
-              title="Auto-suggest category by weight"
+              title={t('autoSuggestTitle')}
               className="shrink-0 flex items-center gap-1 rounded border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {row.suggestingCategory ? (
@@ -433,15 +428,14 @@ function RegistrationCard({
               ) : (
                 <Sparkles className="h-3.5 w-3.5" />
               )}
-              <span className="hidden sm:inline">Suggest</span>
+              <span className="hidden sm:inline">{t('suggest')}</span>
             </button>
           </div>
         </div>
 
-        {/* Category select */}
         <div className="sm:col-span-3 space-y-1">
           <label className="block text-xs text-muted-foreground uppercase tracking-wider">
-            Category
+            {t('selectCategory')}
           </label>
           <select
             value={row.categoryId}
@@ -452,13 +446,13 @@ function RegistrationCard({
                 : 'border-border focus:border-primary/50'
             }`}
           >
-            <option value="">Select category...</option>
+            <option value="">{t('selectCategoryPlaceholder')}</option>
             {relevantCats.length === 0 && (
-              <option value="" disabled>No matching categories</option>
+              <option value="" disabled>{t('noMatchingCats')}</option>
             )}
             {relevantCats.map((cat) => (
               <option key={cat.id} value={cat.id}>
-                {categoryLabel(cat)}
+                {categoryLabel(cat, t)}
               </option>
             ))}
           </select>
@@ -477,7 +471,7 @@ function RegistrationCard({
       {row.suggestedCategoryId && row.categoryId === row.suggestedCategoryId && !row.error && (
         <div className="flex items-center gap-1.5 text-xs text-primary">
           <Sparkles className="h-3 w-3" />
-          Category auto-suggested by weight
+          {t('categoryAutoSuggested')}
         </div>
       )}
     </div>

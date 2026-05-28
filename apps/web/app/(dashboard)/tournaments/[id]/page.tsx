@@ -2,19 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import {
   Trophy, Users, Calendar, MapPin, ChevronLeft, Settings, Globe, Lock,
   Activity, CheckCircle, ExternalLink, UserPlus, Swords, ChevronRight, DollarSign,
+  ClipboardList, Radio,
 } from 'lucide-react';
 import { tournamentsApi, Tournament } from '@/lib/api/tournaments';
-
-const STATUS_CONFIG = {
-  PRIVATE:  { label: 'Draft',    badge: 'badge-draft',   next: 'PUBLIC',   nextLabel: 'Publish' },
-  PUBLIC:   { label: 'Open',     badge: 'badge-public',  next: 'ONGOING',  nextLabel: 'Start Event' },
-  ONGOING:  { label: 'Live',     badge: 'badge-live',    next: 'FINISHED', nextLabel: 'Finish Event' },
-  FINISHED: { label: 'Finished', badge: 'bg-muted/20 text-muted-foreground text-xs px-2 py-0.5 rounded font-medium uppercase tracking-wider', next: null, nextLabel: null },
-};
 
 function formatDate(iso?: string) {
   if (!iso) return '—';
@@ -24,10 +19,18 @@ function formatDate(iso?: string) {
 export default function TournamentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const t = useTranslations('tournamentDetail');
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [transitioning, setTransitioning] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'registrations' | 'categories' | 'brackets' | 'invoices'>('overview');
+
+  const STATUS_CONFIG = {
+    PRIVATE:  { label: t('statusDraft'),    badge: 'badge-draft',   next: 'PUBLIC',   nextLabel: t('statusPublish') },
+    PUBLIC:   { label: t('statusOpen'),     badge: 'badge-public',  next: 'ONGOING',  nextLabel: t('statusStartEvent') },
+    ONGOING:  { label: t('statusLive'),     badge: 'badge-live',    next: 'FINISHED', nextLabel: t('statusFinishEvent') },
+    FINISHED: { label: t('statusFinished'), badge: 'bg-muted/20 text-muted-foreground text-xs px-2 py-0.5 rounded font-medium uppercase tracking-wider', next: null, nextLabel: null },
+  };
 
   useEffect(() => {
     tournamentsApi
@@ -64,6 +67,14 @@ export default function TournamentDetailPage() {
 
   const statusCfg = STATUS_CONFIG[tournament.status] ?? STATUS_CONFIG.PRIVATE;
 
+  const tabs = [
+    { key: 'overview', label: t('tabOverview') },
+    { key: 'registrations', label: t('tabRegistrations') },
+    { key: 'categories', label: t('tabCategories') },
+    { key: 'brackets', label: t('tabBrackets') },
+    { key: 'invoices', label: t('tabInvoices') },
+  ];
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Breadcrumb */}
@@ -72,7 +83,7 @@ export default function TournamentDetailPage() {
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
       >
         <ChevronLeft className="h-3.5 w-3.5" />
-        Tournaments
+        {t('backToList')}
       </Link>
 
       {/* Header */}
@@ -83,29 +94,54 @@ export default function TournamentDetailPage() {
             {tournament.status === 'ONGOING' && (
               <span className="flex items-center gap-1 text-xs text-primary">
                 <span className="live-dot" />
-                Live now
+                {t('liveNow')}
               </span>
             )}
           </div>
           <h1 className="font-heading text-3xl text-foreground sm:text-4xl break-words">{tournament.name.toUpperCase()}</h1>
           {tournament.promoter && (
             <p className="mt-1 text-sm text-muted-foreground">
-              by {tournament.promoter.firstName} {tournament.promoter.lastName}
+              {t('by')} {tournament.promoter.firstName} {tournament.promoter.lastName}
             </p>
           )}
         </div>
 
         {/* Action buttons */}
         <div className="flex shrink-0 items-center gap-2">
-          {/* Register athletes button (only when open for registration) */}
           {(tournament.status === 'PUBLIC' || tournament.status === 'ONGOING') && (
             <Link
               href={`/tournaments/${id}/register`}
               className="flex items-center gap-2 rounded border border-border px-4 py-2 text-sm font-semibold text-foreground hover:border-primary hover:text-primary transition-colors"
             >
               <UserPlus className="h-4 w-4" />
-              <span className="hidden sm:inline">Register Athletes</span>
+              <span className="hidden sm:inline">{t('registerAthletes')}</span>
             </Link>
+          )}
+          {tournament.status === 'ONGOING' && (
+            <>
+              <Link
+                href={`/tournaments/${id}/checkin`}
+                className="flex items-center gap-2 rounded border border-border px-3 py-2 text-sm text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+              >
+                <ClipboardList className="h-4 w-4" />
+                <span className="hidden sm:inline">{t('checkin')}</span>
+              </Link>
+              <Link
+                href={`/tournaments/${id}/scoring`}
+                className="flex items-center gap-2 rounded border border-primary/40 bg-primary/5 px-3 py-2 text-sm text-primary hover:bg-primary/10 transition-colors"
+              >
+                <Swords className="h-4 w-4" />
+                <span className="hidden sm:inline">{t('scoring')}</span>
+              </Link>
+              <Link
+                href={`/t/${tournament.slug}/live`}
+                target="_blank"
+                className="flex items-center gap-2 rounded border border-border px-3 py-2 text-sm text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+              >
+                <Radio className="h-4 w-4" />
+                <span className="hidden sm:inline">{t('live')}</span>
+              </Link>
+            </>
           )}
 
           {statusCfg.next && (
@@ -128,7 +164,7 @@ export default function TournamentDetailPage() {
             className="flex items-center gap-1.5 rounded border border-border px-3 py-2 text-sm text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
           >
             <ExternalLink className="h-4 w-4" />
-            <span className="hidden sm:inline">Public Page</span>
+            <span className="hidden sm:inline">{t('publicPage')}</span>
           </Link>
           <Link
             href={`/tournaments/${id}/edit`}
@@ -141,39 +177,16 @@ export default function TournamentDetailPage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard
-          label="Athletes"
-          value={String(tournament._count?.registrations ?? 0)}
-          icon={Users}
-        />
-        <StatCard
-          label="Categories"
-          value={String(tournament._count?.categories ?? 0)}
-          icon={Trophy}
-        />
-        <StatCard
-          label="Areas"
-          value={String(tournament.numAreas)}
-          icon={MapPin}
-        />
-        <StatCard
-          label="Start Date"
-          value={formatDate(tournament.startDate)}
-          icon={Calendar}
-          small
-        />
+        <StatCard label={t('statAthletes')} value={String(tournament._count?.registrations ?? 0)} icon={Users} />
+        <StatCard label={t('statCategories')} value={String(tournament._count?.categories ?? 0)} icon={Trophy} />
+        <StatCard label={t('statAreas')} value={String(tournament.numAreas)} icon={MapPin} />
+        <StatCard label={t('statStartDate')} value={formatDate(tournament.startDate)} icon={Calendar} small />
       </div>
 
       {/* Tabs */}
       <div className="border-b border-border">
         <div className="flex gap-0 overflow-x-auto">
-          {[
-            { key: 'overview', label: 'Overview' },
-            { key: 'registrations', label: 'Registrations' },
-            { key: 'categories', label: 'Categories' },
-            { key: 'brackets', label: 'Brackets' },
-            { key: 'invoices', label: 'Invoices' },
-          ].map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
@@ -190,38 +203,39 @@ export default function TournamentDetailPage() {
       </div>
 
       {/* Tab content */}
-      {activeTab === 'overview' && <OverviewTab tournament={tournament} />}
-      {activeTab === 'registrations' && <RegistrationsTab tournamentId={id} />}
-      {activeTab === 'categories' && <CategoriesTab tournament={tournament} />}
-      {activeTab === 'brackets' && <BracketsTabLink tournamentId={id} />}
-      {activeTab === 'invoices' && <InvoicesTabLink tournamentId={id} />}
+      {activeTab === 'overview' && <OverviewTab tournament={tournament} t={t} />}
+      {activeTab === 'registrations' && <RegistrationsTab tournamentId={id} t={t} />}
+      {activeTab === 'categories' && <CategoriesTab tournament={tournament} t={t} />}
+      {activeTab === 'brackets' && <BracketsTabLink tournamentId={id} t={t} />}
+      {activeTab === 'invoices' && <InvoicesTabLink tournamentId={id} t={t} />}
     </div>
   );
 }
 
 // ── Sub-tabs ──────────────────────────────────────────────────────────────────
 
-function OverviewTab({ tournament }: { tournament: Tournament }) {
+type TFunc = ReturnType<typeof useTranslations<'tournamentDetail'>>;
+
+function OverviewTab({ tournament, t }: { tournament: Tournament; t: TFunc }) {
   const infoRows = [
-    { label: 'Start Date', value: formatDate(tournament.startDate) },
-    { label: 'End Date', value: formatDate(tournament.endDate) },
-    { label: 'Registration Deadline', value: formatDate(tournament.registrationDeadline) },
-    { label: 'Draw Type', value: tournament.drawType === 'ranking' ? 'By Ranking' : 'Random' },
-    { label: 'Rounds', value: String(tournament.numRounds) },
-    { label: 'Vest Limitation', value: tournament.hasVestLimitation ? 'Yes' : 'No' },
+    { label: t('overviewStartDate'), value: formatDate(tournament.startDate) },
+    { label: t('overviewEndDate'), value: formatDate(tournament.endDate) },
+    { label: t('overviewDeadline'), value: formatDate(tournament.registrationDeadline) },
+    { label: t('overviewDrawType'), value: tournament.drawType === 'ranking' ? t('overviewByRanking') : t('overviewRandom') },
+    { label: t('overviewRounds'), value: String(tournament.numRounds) },
+    { label: t('overviewVestLimit'), value: tournament.hasVestLimitation ? t('vestYes') : t('vestNo') },
   ];
 
   const visibilityRows = [
-    { label: 'Athletes List', value: tournament.athletesVisible, icon: Users },
-    { label: 'Draw / Brackets', value: tournament.drawVisible, icon: Trophy },
-    { label: 'Area Assignments', value: tournament.areasVisible, icon: MapPin },
+    { label: t('overviewAthletesList'), value: tournament.athletesVisible, icon: Users },
+    { label: t('overviewDraw'), value: tournament.drawVisible, icon: Trophy },
+    { label: t('overviewAreas'), value: tournament.areasVisible, icon: MapPin },
   ];
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {/* Tournament info */}
       <div className="rounded-lg border border-border bg-surface p-5 space-y-3">
-        <h3 className="font-heading text-lg text-foreground">DETAILS</h3>
+        <h3 className="font-heading text-lg text-foreground">{t('overviewDetails')}</h3>
         {infoRows.map((row) => (
           <div key={row.label} className="flex justify-between gap-2 text-sm">
             <span className="text-muted-foreground">{row.label}</span>
@@ -230,9 +244,8 @@ function OverviewTab({ tournament }: { tournament: Tournament }) {
         ))}
       </div>
 
-      {/* Visibility */}
       <div className="rounded-lg border border-border bg-surface p-5 space-y-3">
-        <h3 className="font-heading text-lg text-foreground">PUBLIC VISIBILITY</h3>
+        <h3 className="font-heading text-lg text-foreground">{t('overviewVisibility')}</h3>
         {visibilityRows.map(({ label, value, icon: Icon }) => (
           <div key={label} className="flex items-center justify-between gap-2 text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -242,12 +255,12 @@ function OverviewTab({ tournament }: { tournament: Tournament }) {
             {value ? (
               <span className="flex items-center gap-1 text-success">
                 <CheckCircle className="h-3.5 w-3.5" />
-                Visible
+                {t('visibilityVisible')}
               </span>
             ) : (
               <span className="flex items-center gap-1 text-muted-foreground">
                 <Lock className="h-3.5 w-3.5" />
-                Hidden
+                {t('visibilityHidden')}
               </span>
             )}
           </div>
@@ -257,7 +270,7 @@ function OverviewTab({ tournament }: { tournament: Tournament }) {
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Globe className="h-3.5 w-3.5" />
-              Public URL
+              {t('overviewPublicUrl')}
             </div>
             <Link
               href={`/t/${tournament.slug}`}
@@ -269,10 +282,9 @@ function OverviewTab({ tournament }: { tournament: Tournament }) {
         </div>
       </div>
 
-      {/* Description */}
       {tournament.description && (
         <div className="sm:col-span-2 rounded-lg border border-border bg-surface p-5">
-          <h3 className="font-heading text-lg text-foreground mb-2">DESCRIPTION</h3>
+          <h3 className="font-heading text-lg text-foreground mb-2">{t('overviewDescription')}</h3>
           <p className="text-sm text-muted-foreground whitespace-pre-line">{tournament.description}</p>
         </div>
       )}
@@ -280,7 +292,7 @@ function OverviewTab({ tournament }: { tournament: Tournament }) {
   );
 }
 
-function RegistrationsTab({ tournamentId }: { tournamentId: string }) {
+function RegistrationsTab({ tournamentId, t }: { tournamentId: string; t: TFunc }) {
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -303,8 +315,8 @@ function RegistrationsTab({ tournamentId }: { tournamentId: string }) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <Users className="h-10 w-10 text-muted-foreground/30 mb-3" />
-        <p className="font-heading text-lg text-muted-foreground">NO REGISTRATIONS YET</p>
-        <p className="mt-1 text-sm text-muted-foreground">Athletes will appear here once clubs register</p>
+        <p className="font-heading text-lg text-muted-foreground">{t('registrationsNoData')}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t('registrationsNoDataDesc')}</p>
       </div>
     );
   }
@@ -312,11 +324,11 @@ function RegistrationsTab({ tournamentId }: { tournamentId: string }) {
   return (
     <div className="rounded-lg border border-border overflow-hidden">
       <div className="hidden sm:grid grid-cols-12 gap-3 border-b border-border bg-surface-elevated px-5 py-3 text-xs uppercase tracking-widest text-muted-foreground">
-        <span className="col-span-3">Athlete</span>
-        <span className="col-span-3">Category</span>
-        <span className="col-span-2">Club</span>
-        <span className="col-span-2">Weight</span>
-        <span className="col-span-2">Status</span>
+        <span className="col-span-3">{t('registrationsAthlete')}</span>
+        <span className="col-span-3">{t('registrationsCategory')}</span>
+        <span className="col-span-2">{t('registrationsClub')}</span>
+        <span className="col-span-2">{t('registrationsWeight')}</span>
+        <span className="col-span-2">{t('registrationsStatus')}</span>
       </div>
       <ul className="divide-y divide-border">
         {registrations.map((reg) => (
@@ -335,9 +347,9 @@ function RegistrationsTab({ tournamentId }: { tournamentId: string }) {
             <div className="col-span-2 text-muted-foreground">{reg.weight ? `${reg.weight} kg` : '—'}</div>
             <div className="col-span-2">
               {reg.invoiceNote?.status === 'PAID' ? (
-                <span className="badge-public">Paid</span>
+                <span className="badge-public">{t('regPaid')}</span>
               ) : (
-                <span className="badge-draft">Pending</span>
+                <span className="badge-draft">{t('regPending')}</span>
               )}
             </div>
           </li>
@@ -347,7 +359,7 @@ function RegistrationsTab({ tournamentId }: { tournamentId: string }) {
   );
 }
 
-function CategoriesTab({ tournament }: { tournament: Tournament }) {
+function CategoriesTab({ tournament, t }: { tournament: Tournament; t: TFunc }) {
   const cats = tournament.categories ?? [];
   const [openGrades, setOpenGrades] = useState<Set<string>>(new Set());
 
@@ -355,13 +367,12 @@ function CategoriesTab({ tournament }: { tournament: Tournament }) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <Trophy className="h-10 w-10 text-muted-foreground/30 mb-3" />
-        <p className="font-heading text-lg text-muted-foreground">NO CATEGORIES</p>
-        <p className="mt-1 text-sm text-muted-foreground">Add categories from the tournament settings</p>
+        <p className="font-heading text-lg text-muted-foreground">{t('categoriesNoData')}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t('categoriesNoDataDesc')}</p>
       </div>
     );
   }
 
-  // Group by grade, preserving grade displayOrder
   const grouped = cats.reduce<Record<string, { label: string; order: number; items: typeof cats }>>((acc, cat) => {
     const gradeKey = cat.isCustom ? '__custom__' : (cat.gradeId ?? '__unknown__');
     const gradeLabel = cat.isCustom ? 'Custom' : (cat.grade?.nameEn ?? cat.gradeId ?? '—');
@@ -389,7 +400,6 @@ function CategoriesTab({ tournament }: { tournament: Tournament }) {
 
         return (
           <div key={gradeKey} className="rounded-lg border border-border overflow-hidden">
-            {/* Accordion header */}
             <button
               onClick={() => toggleGrade(gradeKey)}
               className="w-full flex items-center justify-between px-5 py-3.5 bg-surface hover:bg-surface-elevated transition-colors text-left"
@@ -400,21 +410,20 @@ function CategoriesTab({ tournament }: { tournament: Tournament }) {
                 />
                 <span className="font-heading text-base text-foreground">{label.toUpperCase()}</span>
                 <span className="text-xs text-muted-foreground">
-                  {items.length} {items.length === 1 ? 'category' : 'categories'}
+                  {items.length} {items.length === 1 ? t('categoriesCategory') : t('categoriesCategories')}
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground">{totalAthletes} athletes</span>
+              <span className="text-xs text-muted-foreground">{totalAthletes} {t('categoriesAthletes').toLowerCase()}</span>
             </button>
 
-            {/* Accordion body */}
             {isOpen && (
               <div className="border-t border-border">
                 <div className="hidden sm:grid grid-cols-12 gap-3 bg-surface-elevated px-5 py-2 text-xs uppercase tracking-widest text-muted-foreground">
-                  <span className="col-span-2">Gender</span>
-                  <span className="col-span-4">Weight</span>
-                  <span className="col-span-2">Vest</span>
-                  <span className="col-span-2">Min Age</span>
-                  <span className="col-span-2">Athletes</span>
+                  <span className="col-span-2">{t('categoriesGender')}</span>
+                  <span className="col-span-4">{t('categoriesWeight')}</span>
+                  <span className="col-span-2">{t('categoriesVest')}</span>
+                  <span className="col-span-2">{t('categoriesMinAge')}</span>
+                  <span className="col-span-2">{t('categoriesAthletes')}</span>
                 </div>
                 <ul className="divide-y divide-border">
                   {items.map((cat) => (
@@ -423,7 +432,7 @@ function CategoriesTab({ tournament }: { tournament: Tournament }) {
                       className="grid grid-cols-1 gap-1 px-5 py-2.5 text-sm sm:grid-cols-12 sm:items-center sm:gap-3"
                     >
                       <div className="col-span-2 font-medium text-foreground">
-                        {cat.gender?.code === 'M' ? 'Male' : cat.gender?.code === 'F' ? 'Female' : '—'}
+                        {cat.gender?.code === 'M' ? t('genderMale') : cat.gender?.code === 'F' ? t('genderFemale') : '—'}
                       </div>
                       <div className="col-span-4 text-muted-foreground">
                         {cat.isCustom
@@ -471,40 +480,36 @@ function StatCard({
   );
 }
 
-function InvoicesTabLink({ tournamentId }: { tournamentId: string }) {
+function InvoicesTabLink({ tournamentId, t }: { tournamentId: string; t: TFunc }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center rounded-lg border border-dashed border-border">
       <DollarSign className="h-12 w-12 text-muted-foreground/20 mb-4" />
-      <h3 className="font-heading text-xl text-muted-foreground">INVOICE MANAGEMENT</h3>
-      <p className="mt-2 text-sm text-muted-foreground max-w-xs">
-        Generate and manage invoice notes for each club, track payments and revenue.
-      </p>
+      <h3 className="font-heading text-xl text-muted-foreground">{t('invoicesTitle')}</h3>
+      <p className="mt-2 text-sm text-muted-foreground max-w-xs">{t('invoicesDesc')}</p>
       <Link
         href={`/tournaments/${tournamentId}/invoices`}
         className="mt-6 flex items-center gap-2 rounded bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
       >
         <DollarSign className="h-4 w-4" />
-        Open Invoices
+        {t('invoicesOpen')}
         <ChevronRight className="h-4 w-4" />
       </Link>
     </div>
   );
 }
 
-function BracketsTabLink({ tournamentId }: { tournamentId: string }) {
+function BracketsTabLink({ tournamentId, t }: { tournamentId: string; t: TFunc }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center rounded-lg border border-dashed border-border">
       <Swords className="h-12 w-12 text-muted-foreground/20 mb-4" />
-      <h3 className="font-heading text-xl text-muted-foreground">COMPETITION DRAW</h3>
-      <p className="mt-2 text-sm text-muted-foreground max-w-xs">
-        Generate and view the elimination brackets, area assignments and match schedule.
-      </p>
+      <h3 className="font-heading text-xl text-muted-foreground">{t('bracketsTitle')}</h3>
+      <p className="mt-2 text-sm text-muted-foreground max-w-xs">{t('bracketsDesc')}</p>
       <Link
         href={`/tournaments/${tournamentId}/brackets`}
         className="mt-6 flex items-center gap-2 rounded bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
       >
         <Swords className="h-4 w-4" />
-        Open Brackets
+        {t('bracketsOpen')}
         <ChevronRight className="h-4 w-4" />
       </Link>
     </div>
