@@ -6,6 +6,9 @@ import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -66,6 +69,43 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'User profile.' })
   async getMe(@CurrentUser() user: { id: string }) {
     return this.auth.getProfile(user.id);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Send password reset email' })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ApiResponse({ status: 204, description: 'If the email exists, a reset link has been sent.' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.auth.forgotPassword(dto.email);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Reset password using token from email' })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiResponse({ status: 204, description: 'Password updated.' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.auth.resetPassword(dto.token, dto.newPassword);
+  }
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Verify email address using token' })
+  @ApiBody({ type: VerifyEmailDto })
+  @ApiResponse({ status: 204, description: 'Email verified.' })
+  async verifyEmail(@Body() dto: VerifyEmailDto) {
+    await this.auth.verifyEmail(dto.token);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Resend email verification link' })
+  @ApiResponse({ status: 204, description: 'Verification email sent.' })
+  async resendVerification(@CurrentUser() user: { id: string }) {
+    await this.auth.resendVerificationEmail(user.id);
   }
 
   private setRefreshCookie(res: Response, token: string) {
