@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Users, UserPlus, Search, X, Loader2, AlertCircle, Check } from 'lucide-react';
+import { Users, UserPlus, Search, X, Loader2, AlertCircle, Check, Shield } from 'lucide-react';
+import Link from 'next/link';
 import { clubsApi, Athlete, CreateAthleteDto } from '@/lib/api/clubs';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,6 +29,7 @@ export default function AthletesPage() {
 
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [loading, setLoading] = useState(true);
+  const [noClub, setNoClub] = useState(false);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -41,7 +43,10 @@ export default function AthletesPage() {
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   useEffect(() => {
-    clubsApi.getMyAthletes().then(setAthletes).finally(() => setLoading(false));
+    clubsApi.getMyAthletes()
+      .then(setAthletes)
+      .catch((e) => { if (e?.response?.status === 404) setNoClub(true); })
+      .finally(() => setLoading(false));
   }, []);
 
   const filtered = athletes.filter((a) => {
@@ -62,6 +67,28 @@ export default function AthletesPage() {
       const msg = e?.response?.data?.message;
       setSubmitError(Array.isArray(msg) ? msg.join(', ') : msg ?? t('addFailed'));
     }
+  }
+
+  if (noClub) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">{t('clubRoster')}</p>
+          <h1 className="font-heading text-4xl text-foreground sm:text-5xl">{t('title')}</h1>
+        </div>
+        <div className="rounded-lg border border-border bg-surface p-8 text-center">
+          <Shield className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
+          <h2 className="font-heading text-xl text-foreground mb-2">{t('noClubTitle')}</h2>
+          <p className="text-sm text-muted-foreground mb-6">{t('noClubDesc')}</p>
+          <Link
+            href="/settings"
+            className="inline-flex items-center gap-2 rounded bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
+          >
+            {t('noClubCta')}
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (

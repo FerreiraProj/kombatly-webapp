@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { User, Lock, Check, Loader2, AlertCircle } from 'lucide-react';
+import { User, Lock, Check, Loader2, AlertCircle, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/store/auth.store';
@@ -36,6 +36,22 @@ export default function SettingsPage() {
   const [profileError, setProfileError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [club, setClub] = useState<any>(null);
+  const [clubLoading, setClubLoading] = useState(true);
+  const [clubSuccess, setClubSuccess] = useState('');
+  const [clubError, setClubError] = useState('');
+
+  const clubSchema = z.object({
+    name:    z.string().min(1, t('errors.required')),
+    sigla:   z.string().max(10).optional(),
+    city:    z.string().optional(),
+    country: z.string().optional(),
+    phone:   z.string().optional(),
+    email:   z.string().email().optional().or(z.literal('')),
+  });
+  type ClubValues = z.infer<typeof clubSchema>;
+
+  const clubForm = useForm<ClubValues>({ resolver: zodResolver(clubSchema) });
 
   const profileSchema = z.object({
     firstName: z.string().min(2, t('errors.required')),
@@ -72,6 +88,23 @@ export default function SettingsPage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    apiClient.get('/clubs/me')
+      .then(r => {
+        setClub(r.data);
+        clubForm.reset({
+          name:    r.data.name ?? '',
+          sigla:   r.data.sigla ?? '',
+          city:    r.data.city ?? '',
+          country: r.data.country ?? '',
+          phone:   r.data.phone ?? '',
+          email:   r.data.email ?? '',
+        });
+      })
+      .catch(() => {})
+      .finally(() => setClubLoading(false));
+  }, []);
+
   async function onProfileSubmit(values: ProfileValues) {
     setProfileError('');
     try {
@@ -82,6 +115,25 @@ export default function SettingsPage() {
     } catch (e: any) {
       const msg = e?.response?.data?.message;
       setProfileError(Array.isArray(msg) ? msg.join(', ') : msg ?? t('errors.updateFailed'));
+    }
+  }
+
+  async function onClubSubmit(values: ClubValues) {
+    setClubError('');
+    try {
+      const payload = { ...values, email: values.email || undefined };
+      if (club) {
+        const { data } = await apiClient.patch(`/clubs/${club.id}`, payload);
+        setClub(data);
+      } else {
+        const { data } = await apiClient.post('/clubs', payload);
+        setClub(data);
+      }
+      setClubSuccess(t('clubSaved'));
+      setTimeout(() => setClubSuccess(''), 3000);
+    } catch (e: any) {
+      const msg = e?.response?.data?.message;
+      setClubError(Array.isArray(msg) ? msg.join(', ') : msg ?? t('errors.updateFailed'));
     }
   }
 
@@ -165,6 +217,65 @@ export default function SettingsPage() {
             </button>
           </div>
         </form>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
+          <Shield className="h-4 w-4 text-muted-foreground" />
+          <h2 className="font-heading text-xl text-foreground">{t('clubTitle')}</h2>
+        </div>
+
+        {clubLoading ? (
+          <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        ) : (
+          <form onSubmit={clubForm.handleSubmit(onClubSubmit)} className="space-y-4">
+            {!club && (
+              <p className="text-sm text-muted-foreground">{t('clubNoClub')}</p>
+            )}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label={t('clubName')} error={clubForm.formState.errors.name?.message} required>
+                <input {...clubForm.register('name')} placeholder="e.g. Taekwondo Club Lisboa" className={inputCls(!!clubForm.formState.errors.name)} />
+              </Field>
+              <Field label={t('clubSigla')} error={clubForm.formState.errors.sigla?.message}>
+                <input {...clubForm.register('sigla')} placeholder="TCL" className={inputCls(false)} />
+              </Field>
+              <Field label={t('clubCity')} error={clubForm.formState.errors.city?.message}>
+                <input {...clubForm.register('city')} className={inputCls(false)} />
+              </Field>
+              <Field label={t('clubCountry')} error={clubForm.formState.errors.country?.message}>
+                <input {...clubForm.register('country')} placeholder="Portugal" className={inputCls(false)} />
+              </Field>
+              <Field label={t('clubPhone')} error={clubForm.formState.errors.phone?.message}>
+                <input {...clubForm.register('phone')} className={inputCls(false)} />
+              </Field>
+              <Field label={t('clubEmail')} error={clubForm.formState.errors.email?.message}>
+                <input {...clubForm.register('email')} className={inputCls(!!clubForm.formState.errors.email)} />
+              </Field>
+            </div>
+
+            {clubError && (
+              <div className="flex items-start gap-2 rounded border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" /> {clubError}
+              </div>
+            )}
+            {clubSuccess && (
+              <div className="flex items-center gap-2 rounded border border-success/30 bg-success/10 p-3 text-sm text-success">
+                <Check className="h-4 w-4" /> {clubSuccess}
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={clubForm.formState.isSubmitting}
+                className="flex items-center gap-2 rounded bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {clubForm.formState.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                {club ? t('saveChanges') : t('clubCreate')}
+              </button>
+            </div>
+          </form>
+        )}
       </section>
 
       <section className="space-y-4">
