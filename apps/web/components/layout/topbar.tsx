@@ -1,8 +1,32 @@
 'use client';
 
-import { Bell, Timer } from 'lucide-react';
+import { Bell, BellOff, Timer } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { registerPush, unregisterPush, isPushSubscribed } from '@/lib/push';
 
 export function Topbar() {
+  const [subscribed, setSubscribed] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    isPushSubscribed().then(setSubscribed).catch(() => {});
+  }, []);
+
+  async function togglePush() {
+    setLoading(true);
+    try {
+      if (subscribed) {
+        await unregisterPush();
+        setSubscribed(false);
+      } else {
+        const ok = await registerPush();
+        setSubscribed(ok);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-surface px-4 sm:px-6">
       <div className="flex items-center gap-3">
@@ -19,9 +43,18 @@ export function Topbar() {
           </span>
           <span className="text-xs font-bold text-primary">—</span>
         </div>
-        {/* Notifications */}
-        <button className="relative flex h-8 w-8 items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground transition-colors">
-          <Bell className="h-4 w-4" />
+        {/* Push notifications toggle */}
+        <button
+          onClick={togglePush}
+          disabled={loading}
+          title={subscribed ? 'Desativar notificações' : 'Ativar notificações'}
+          className={`relative flex h-8 w-8 items-center justify-center rounded border transition-colors
+            ${subscribed
+              ? 'border-primary text-primary hover:border-primary/70 hover:text-primary/70'
+              : 'border-border text-muted-foreground hover:text-foreground'
+            } disabled:opacity-50`}
+        >
+          {subscribed ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
         </button>
       </div>
     </header>

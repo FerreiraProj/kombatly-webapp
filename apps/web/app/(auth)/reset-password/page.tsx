@@ -2,43 +2,57 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api/client';
-import { useAuthStore } from '@/lib/store/auth.store';
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   const t = useTranslations('auth');
   const router = useRouter();
-  const { setAuth } = useAuthStore();
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token') ?? '';
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
   const schema = z.object({
-    email: z.string().email(t('errors.emailInvalid')),
-    password: z.string().min(1, t('errors.passwordRequired')),
+    newPassword: z.string().min(8, t('errors.min8Chars')),
+    confirmPassword: z.string(),
+  }).refine(d => d.newPassword === d.confirmPassword, {
+    message: t('errors.passwordsMismatch'),
+    path: ['confirmPassword'],
   });
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<{ email: string; password: string }>({
+  type FormData = z.infer<typeof schema>;
+
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
-  async function onSubmit(data: { email: string; password: string }) {
+  async function onSubmit(data: FormData) {
     setError('');
     try {
-      const { data: tokens } = await apiClient.post('/auth/login', data);
-      const { data: user } = await apiClient.get('/auth/me', {
-        headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      });
-      setAuth(user, tokens.accessToken);
-      router.push('/dashboard');
+      await apiClient.post('/auth/reset-password', { token, newPassword: data.newPassword });
+      router.push('/login?reset=1');
     } catch {
-      setError(t('signInFailed'));
+      setError(t('invalidOrExpiredLink'));
     }
+  }
+
+  if (!token) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <p className="text-muted-foreground">
+          {t('invalidToken')}{' '}
+          <Link href="/forgot-password" className="text-primary hover:underline">
+            {t('requestNewLink')}
+          </Link>
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -48,33 +62,19 @@ export default function LoginPage() {
           <Link href="/" className="font-heading text-3xl text-primary tracking-widest">
             TAEKWOMBATS
           </Link>
-          <p className="mt-2 text-sm text-muted-foreground">{t('signInSubtitle')}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t('resetPasswordSubtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {t('email')}
-            </label>
-            <input
-              {...register('email')}
-              type="email"
-              autoComplete="email"
-              className="w-full rounded border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="you@example.com"
-            />
-            {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>}
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {t('password')}
+              {t('newPassword')}
             </label>
             <div className="relative">
               <input
-                {...register('password')}
+                {...register('newPassword')}
                 type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
+                autoComplete="new-password"
                 className="w-full rounded border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary pr-10"
                 placeholder="••••••••"
               />
@@ -86,7 +86,21 @@ export default function LoginPage() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            {errors.password && <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>}
+            {errors.newPassword && <p className="mt-1 text-xs text-red-400">{errors.newPassword.message}</p>}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {t('confirmPassword')}
+            </label>
+            <input
+              {...register('confirmPassword')}
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              className="w-full rounded border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="••••••••"
+            />
+            {errors.confirmPassword && <p className="mt-1 text-xs text-red-400">{errors.confirmPassword.message}</p>}
           </div>
 
           {error && (
@@ -101,21 +115,9 @@ export default function LoginPage() {
             className="flex w-full items-center justify-center gap-2 rounded bg-primary py-3 font-semibold text-white hover:bg-red-700 disabled:opacity-60 transition-colors"
           >
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {isSubmitting ? t('signingIn') : t('signIn').toUpperCase()}
+            {isSubmitting ? t('saving') : t('savePassword')}
           </button>
         </form>
-
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          <Link href="/forgot-password" className="text-primary hover:underline">
-            {t('forgotPassword')}
-          </Link>
-        </p>
-        <p className="mt-3 text-center text-sm text-muted-foreground">
-          {t('noAccount')}{' '}
-          <Link href="/register" className="text-primary hover:underline">
-            {t('createOne')}
-          </Link>
-        </p>
       </div>
     </div>
   );

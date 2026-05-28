@@ -7,30 +7,32 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/store/auth.store';
 
-const schema = z
-  .object({
-    firstName: z.string().min(1, 'First name required').max(100),
-    lastName: z.string().min(1, 'Last name required').max(100),
-    email: z.string().email('Invalid email'),
-    password: z.string().min(8, 'Minimum 8 characters'),
-    confirmPassword: z.string(),
-    phone: z.string().optional(),
-  })
-  .refine((d) => d.password === d.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
-  });
-
-type FormData = z.infer<typeof schema>;
-
 export default function RegisterPage() {
+  const t = useTranslations('auth');
   const router = useRouter();
   const { setAuth } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState('');
+
+  const schema = z
+    .object({
+      firstName: z.string().min(1, t('errors.firstNameRequired')).max(100),
+      lastName: z.string().min(1, t('errors.lastNameRequired')).max(100),
+      email: z.string().email(t('errors.emailInvalid')),
+      password: z.string().min(8, t('errors.min8Chars')),
+      confirmPassword: z.string(),
+      phone: z.string().optional(),
+    })
+    .refine((d) => d.password === d.confirmPassword, {
+      message: t('errors.passwordsMismatch'),
+      path: ['confirmPassword'],
+    });
+
+  type FormData = z.infer<typeof schema>;
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -52,16 +54,9 @@ export default function RegisterPage() {
       setAuth(user, tokens.accessToken);
       router.push('/dashboard');
     } catch (err: any) {
-      setServerError(err.response?.data?.message ?? 'Registration failed');
+      setServerError(err.response?.data?.message ?? t('registrationFailed'));
     }
   }
-
-  const fields = [
-    { name: 'firstName', label: 'First Name', type: 'text', placeholder: 'João', col: 1 },
-    { name: 'lastName', label: 'Last Name', type: 'text', placeholder: 'Silva', col: 1 },
-    { name: 'email', label: 'Email', type: 'email', placeholder: 'you@example.com', col: 2 },
-    { name: 'phone', label: 'Phone (optional)', type: 'tel', placeholder: '+351 912 345 678', col: 2 },
-  ] as const;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
@@ -70,49 +65,65 @@ export default function RegisterPage() {
           <Link href="/" className="font-heading text-3xl text-primary tracking-widest">
             TAEKWOMBATS
           </Link>
-          <p className="mt-2 text-sm text-muted-foreground">Create your account</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t('createAccountSubtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            {fields.slice(0, 2).map((f) => (
-              <div key={f.name}>
-                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  {f.label}
-                </label>
-                <input
-                  {...register(f.name)}
-                  type={f.type}
-                  className="w-full rounded border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  placeholder={f.placeholder}
-                />
-                {errors[f.name] && (
-                  <p className="mt-1 text-xs text-red-400">{errors[f.name]?.message}</p>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {fields.slice(2).map((f) => (
-            <div key={f.name}>
+            <div>
               <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {f.label}
+                {t('firstName')}
               </label>
               <input
-                {...register(f.name)}
-                type={f.type}
+                {...register('firstName')}
+                type="text"
                 className="w-full rounded border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder={f.placeholder}
+                placeholder="João"
               />
-              {errors[f.name] && (
-                <p className="mt-1 text-xs text-red-400">{errors[f.name]?.message}</p>
-              )}
+              {errors.firstName && <p className="mt-1 text-xs text-red-400">{errors.firstName.message}</p>}
             </div>
-          ))}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {t('lastName')}
+              </label>
+              <input
+                {...register('lastName')}
+                type="text"
+                className="w-full rounded border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                placeholder="Silva"
+              />
+              {errors.lastName && <p className="mt-1 text-xs text-red-400">{errors.lastName.message}</p>}
+            </div>
+          </div>
 
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Password
+              {t('email')}
+            </label>
+            <input
+              {...register('email')}
+              type="email"
+              className="w-full rounded border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="you@example.com"
+            />
+            {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {t('phoneOptional')}
+            </label>
+            <input
+              {...register('phone')}
+              type="tel"
+              className="w-full rounded border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="+351 912 345 678"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {t('password')}
             </label>
             <div className="relative">
               <input
@@ -134,7 +145,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Confirm Password
+              {t('confirmPassword')}
             </label>
             <input
               {...register('confirmPassword')}
@@ -159,14 +170,14 @@ export default function RegisterPage() {
             className="flex w-full items-center justify-center gap-2 rounded bg-primary py-3 font-semibold text-white hover:bg-red-700 disabled:opacity-60 transition-colors"
           >
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {isSubmitting ? 'Creating account...' : 'CREATE ACCOUNT'}
+            {isSubmitting ? t('creatingAccount') : t('createAccount').toUpperCase()}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Already have an account?{' '}
+          {t('alreadyHaveAccount')}{' '}
           <Link href="/login" className="text-primary hover:underline">
-            Sign in
+            {t('signInLink')}
           </Link>
         </p>
       </div>
