@@ -19,8 +19,12 @@ export class PushService implements OnModuleInit {
     const subject = this.config.get<string>('VAPID_SUBJECT') ?? 'mailto:admin@kombatlypro.com';
 
     if (publicKey && privateKey) {
-      webPush.setVapidDetails(subject, publicKey, privateKey);
-      this.enabled = true;
+      try {
+        webPush.setVapidDetails(subject, publicKey, privateKey);
+        this.enabled = true;
+      } catch (err: any) {
+        this.logger.warn(`Invalid VAPID keys — push notifications disabled: ${err.message}`);
+      }
     } else {
       this.logger.warn('VAPID keys not configured — push notifications disabled');
     }
