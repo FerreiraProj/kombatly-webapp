@@ -36,10 +36,7 @@ apiClient.interceptors.response.use(
         return apiClient(original);
       } catch {
         localStorage.removeItem('access_token');
-        // Clear the httpOnly refresh_token cookie server-side before redirecting
-        // to break any potential middleware redirect loop
-        await axios.post(`${API_BASE}/auth/logout`, {}, { withCredentials: true }).catch(() => {});
-        window.location.href = '/login';
+        window.location.href = '/api/clear-auth';
       }
     }
     return Promise.reject(error);
