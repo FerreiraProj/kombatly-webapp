@@ -5,26 +5,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { User, Lock, Check, Loader2, AlertCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/store/auth.store';
-
-const profileSchema = z.object({
-  firstName: z.string().min(2, 'Required'),
-  lastName:  z.string().min(2, 'Required'),
-  phone:     z.string().optional(),
-});
-
-const passwordSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password required'),
-  newPassword:     z.string().min(8, 'Minimum 8 characters'),
-  confirmPassword: z.string(),
-}).refine((d) => d.newPassword === d.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
-
-type ProfileValues = z.infer<typeof profileSchema>;
-type PasswordValues = z.infer<typeof passwordSchema>;
 
 function inputCls(err: boolean) {
   return `w-full rounded border bg-surface-elevated px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors ${
@@ -47,11 +30,30 @@ function Field({ label, error, required, children }: {
 }
 
 export default function SettingsPage() {
+  const t = useTranslations('settings');
   const { user, setUser } = useAuthStore();
   const [profileSuccess, setProfileSuccess] = useState('');
   const [profileError, setProfileError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [passwordError, setPasswordError] = useState('');
+
+  const profileSchema = z.object({
+    firstName: z.string().min(2, t('errors.required')),
+    lastName:  z.string().min(2, t('errors.required')),
+    phone:     z.string().optional(),
+  });
+
+  const passwordSchema = z.object({
+    currentPassword: z.string().min(1, t('errors.required')),
+    newPassword:     z.string().min(8, t('errors.min8Chars')),
+    confirmPassword: z.string(),
+  }).refine((d) => d.newPassword === d.confirmPassword, {
+    message: t('errors.passwordsMismatch'),
+    path: ['confirmPassword'],
+  });
+
+  type ProfileValues = z.infer<typeof profileSchema>;
+  type PasswordValues = z.infer<typeof passwordSchema>;
 
   const profileForm = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
@@ -75,11 +77,11 @@ export default function SettingsPage() {
     try {
       const { data } = await apiClient.patch('/users/me', values);
       setUser(data);
-      setProfileSuccess('Profile updated successfully');
+      setProfileSuccess(t('profileUpdated'));
       setTimeout(() => setProfileSuccess(''), 3000);
     } catch (e: any) {
       const msg = e?.response?.data?.message;
-      setProfileError(Array.isArray(msg) ? msg.join(', ') : msg ?? 'Update failed');
+      setProfileError(Array.isArray(msg) ? msg.join(', ') : msg ?? t('errors.updateFailed'));
     }
   }
 
@@ -90,30 +92,28 @@ export default function SettingsPage() {
         currentPassword: values.currentPassword,
         newPassword: values.newPassword,
       });
-      setPasswordSuccess('Password changed successfully');
+      setPasswordSuccess(t('passwordChanged'));
       passwordForm.reset();
       setTimeout(() => setPasswordSuccess(''), 3000);
     } catch (e: any) {
       const msg = e?.response?.data?.message;
-      setPasswordError(Array.isArray(msg) ? msg.join(', ') : msg ?? 'Password change failed');
+      setPasswordError(Array.isArray(msg) ? msg.join(', ') : msg ?? t('errors.passwordChangeFailed'));
     }
   }
 
   return (
     <div className="space-y-8 animate-fade-in max-w-2xl">
       <div>
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">Account</p>
-        <h1 className="font-heading text-4xl text-foreground sm:text-5xl">SETTINGS</h1>
+        <p className="text-xs uppercase tracking-widest text-muted-foreground">{t('subtitle')}</p>
+        <h1 className="font-heading text-4xl text-foreground sm:text-5xl">{t('title')}</h1>
       </div>
 
-      {/* Profile section */}
       <section className="space-y-4">
         <div className="flex items-center gap-2 border-b border-border pb-3">
           <User className="h-4 w-4 text-muted-foreground" />
-          <h2 className="font-heading text-xl text-foreground">PROFILE</h2>
+          <h2 className="font-heading text-xl text-foreground">{t('profile')}</h2>
         </div>
 
-        {/* Avatar placeholder */}
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
             {user?.firstName?.[0]}{user?.lastName?.[0]}
@@ -127,16 +127,16 @@ export default function SettingsPage() {
 
         <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="First Name" error={profileForm.formState.errors.firstName?.message} required>
+            <Field label={t('firstName')} error={profileForm.formState.errors.firstName?.message} required>
               <input {...profileForm.register('firstName')} className={inputCls(!!profileForm.formState.errors.firstName)} />
             </Field>
-            <Field label="Last Name" error={profileForm.formState.errors.lastName?.message} required>
+            <Field label={t('lastName')} error={profileForm.formState.errors.lastName?.message} required>
               <input {...profileForm.register('lastName')} className={inputCls(!!profileForm.formState.errors.lastName)} />
             </Field>
-            <Field label="Phone" error={profileForm.formState.errors.phone?.message}>
+            <Field label={t('phone')} error={profileForm.formState.errors.phone?.message}>
               <input {...profileForm.register('phone')} placeholder="+351 912 345 678" className={inputCls(false)} />
             </Field>
-            <Field label="Email">
+            <Field label={t('email')}>
               <input value={user?.email ?? ''} disabled className={inputCls(false) + ' opacity-50 cursor-not-allowed'} />
             </Field>
           </div>
@@ -161,28 +161,27 @@ export default function SettingsPage() {
               {profileForm.formState.isSubmitting
                 ? <Loader2 className="h-4 w-4 animate-spin" />
                 : <Check className="h-4 w-4" />}
-              Save Changes
+              {t('saveChanges')}
             </button>
           </div>
         </form>
       </section>
 
-      {/* Password section */}
       <section className="space-y-4">
         <div className="flex items-center gap-2 border-b border-border pb-3">
           <Lock className="h-4 w-4 text-muted-foreground" />
-          <h2 className="font-heading text-xl text-foreground">CHANGE PASSWORD</h2>
+          <h2 className="font-heading text-xl text-foreground">{t('changePassword')}</h2>
         </div>
 
         <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-          <Field label="Current Password" error={passwordForm.formState.errors.currentPassword?.message} required>
+          <Field label={t('currentPassword')} error={passwordForm.formState.errors.currentPassword?.message} required>
             <input type="password" {...passwordForm.register('currentPassword')} className={inputCls(!!passwordForm.formState.errors.currentPassword)} />
           </Field>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="New Password" error={passwordForm.formState.errors.newPassword?.message} required>
+            <Field label={t('newPassword')} error={passwordForm.formState.errors.newPassword?.message} required>
               <input type="password" {...passwordForm.register('newPassword')} className={inputCls(!!passwordForm.formState.errors.newPassword)} />
             </Field>
-            <Field label="Confirm Password" error={passwordForm.formState.errors.confirmPassword?.message} required>
+            <Field label={t('confirmPassword')} error={passwordForm.formState.errors.confirmPassword?.message} required>
               <input type="password" {...passwordForm.register('confirmPassword')} className={inputCls(!!passwordForm.formState.errors.confirmPassword)} />
             </Field>
           </div>
@@ -207,7 +206,7 @@ export default function SettingsPage() {
               {passwordForm.formState.isSubmitting
                 ? <Loader2 className="h-4 w-4 animate-spin" />
                 : <Lock className="h-4 w-4" />}
-              Update Password
+              {t('updatePassword')}
             </button>
           </div>
         </form>
