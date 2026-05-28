@@ -1,4 +1,4 @@
-import { Controller, Patch, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiSecurity, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { JwtOrApiKeyGuard } from '../auth/guards/jwt-or-api-key.guard';
@@ -23,6 +23,13 @@ export class UsersController {
     @Body() dto: UpdateProfileDto,
   ): Promise<any> {
     return this.service.updateProfile(user.id, dto);
+  }
+
+  @Get('athletes/:id/stats')
+  @ApiOperation({ summary: 'Get athlete statistics (public)' })
+  @ApiResponse({ status: 200, description: 'Win/loss record and point totals.' })
+  getAthleteStats(@Param('id') id: string): Promise<any> {
+    return this.service.getAthleteStats(id);
   }
 
   @Patch('me/password')

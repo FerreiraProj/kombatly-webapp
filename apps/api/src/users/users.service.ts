@@ -21,6 +21,45 @@ export class UsersService {
     });
   }
 
+  async getAthleteStats(athleteId: string): Promise<any> {
+    const registrations = await this.prisma.tournamentRegistration.findMany({
+      where: { athleteId },
+      select: {
+        id: true,
+        tournamentId: true,
+        redCombats: { select: { id: true, status: true, winnerId: true } },
+        blueCombats: { select: { id: true, status: true, winnerId: true } },
+        wonCombats: { select: { id: true } },
+        combatPoints: { select: { pointValue: true } },
+      },
+    });
+
+    const tournamentIds = [...new Set(registrations.map((r) => r.tournamentId))];
+    let totalCombats = 0;
+    let wins = 0;
+
+    for (const reg of registrations) {
+      const allCombats = [...reg.redCombats, ...reg.blueCombats];
+      const finished = allCombats.filter((c) => c.status === 'FINISHED');
+      totalCombats += finished.length;
+      wins += reg.wonCombats.length;
+    }
+
+    const totalPoints = registrations.reduce(
+      (sum, reg) => sum + reg.combatPoints.reduce((s, p) => s + (p.pointValue ?? 0), 0),
+      0,
+    );
+
+    return {
+      tournaments: tournamentIds.length,
+      combats: totalCombats,
+      wins,
+      losses: totalCombats - wins,
+      winRate: totalCombats > 0 ? Math.round((wins / totalCombats) * 100) : 0,
+      totalPoints,
+    };
+  }
+
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException();

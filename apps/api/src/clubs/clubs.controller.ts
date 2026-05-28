@@ -71,6 +71,13 @@ export class ClubsController {
     return this.service.getClub(id);
   }
 
+  @Get(':id/stats')
+  @ApiOperation({ summary: 'Get club statistics (public)' })
+  @ApiResponse({ status: 200, description: 'Club stats.' })
+  getStats(@Param('id') id: string): Promise<any> {
+    return this.service.getClubStats(id);
+  }
+
   @Patch(':id')
   @ApiBearerAuth()
   @ApiSecurity('apiKey')

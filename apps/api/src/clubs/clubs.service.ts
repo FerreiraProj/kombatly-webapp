@@ -73,6 +73,30 @@ export class ClubsService {
     });
   }
 
+  async getClubStats(clubId: string): Promise<any> {
+    const club = await this.prisma.club.findUnique({ where: { id: clubId } });
+    if (!club) throw new NotFoundException('Clube não encontrado');
+
+    const [totalAthletes, totalRegistrations, tournamentIds, wins] = await Promise.all([
+      this.prisma.tournamentRegistration.findMany({
+        where: { clubId },
+        distinct: ['athleteId'],
+        select: { athleteId: true },
+      }).then((r) => r.length),
+      this.prisma.tournamentRegistration.count({ where: { clubId } }),
+      this.prisma.tournamentRegistration.findMany({
+        where: { clubId },
+        distinct: ['tournamentId'],
+        select: { tournamentId: true },
+      }).then((r) => r.length),
+      this.prisma.combat.count({
+        where: { winner: { clubId } },
+      }),
+    ]);
+
+    return { totalAthletes, totalRegistrations, tournaments: tournamentIds, wins };
+  }
+
   async listPublicClubs(search?: string) {
     return this.prisma.club.findMany({
       where: search ? { name: { contains: search, mode: 'insensitive' } } : undefined,
