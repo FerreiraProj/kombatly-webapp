@@ -78,11 +78,11 @@ export interface CreateTournamentDto {
   drawType: string;
   numRounds: number;
   hasVestLimitation: boolean;
-  vestQty1?: number;
-  vestQty2?: number;
-  vestQty3?: number;
-  vestQty4?: number;
-  athletesVisible?: boolean;
+  vestQtyType1?: number;
+  vestQtyType2?: number;
+  vestQtyType3?: number;
+  vestQtyType4?: number;
+  athletesVisible?: 'NONE' | 'REGISTERED' | 'ALL';
   drawVisible?: boolean;
   areasVisible?: boolean;
   categoryIds?: string[];
