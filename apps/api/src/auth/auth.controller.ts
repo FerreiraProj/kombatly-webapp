@@ -58,8 +58,12 @@ export class AuthController {
   @ApiResponse({ status: 204, description: 'Logged out.' })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const token = req.cookies?.['refresh_token'];
-    if (token) await this.auth.logout(token);
-    res.clearCookie('refresh_token', { path: '/' });
+    if (token) await this.auth.logout(token).catch(() => {});
+    const cookieDomain = process.env.COOKIE_DOMAIN;
+    res.clearCookie('refresh_token', {
+      path: '/',
+      ...(cookieDomain && { domain: cookieDomain }),
+    });
   }
 
   @UseGuards(JwtAuthGuard)

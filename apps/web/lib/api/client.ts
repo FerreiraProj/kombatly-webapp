@@ -17,7 +17,8 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Auto-refresh on 401 — skip for auth endpoints to avoid redirect loops on wrong password
+let isLoggingOut = false;
+
 apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
@@ -35,8 +36,12 @@ apiClient.interceptors.response.use(
         original.headers.Authorization = `Bearer ${data.accessToken}`;
         return apiClient(original);
       } catch {
-        localStorage.removeItem('access_token');
-        window.location.href = '/api/clear-auth';
+        if (!isLoggingOut) {
+          isLoggingOut = true;
+          localStorage.removeItem('access_token');
+          await axios.post(`${API_BASE}/auth/logout`, {}, { withCredentials: true }).catch(() => {});
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);
