@@ -124,6 +124,8 @@ model User {
 
   // Relations
   club                    Club?
+  homeClubId              String?
+  homeClub                Club?                   @relation("HomeClubAthletes", fields: [homeClubId], references: [id])
   promotedTournaments     Tournament[]            @relation("PromotedTournaments")
   athleteRegistrations    TournamentRegistration[] @relation("AthleteRegistrations")
   issuedInvoices          InvoiceNote[]           @relation("IssuedInvoices")
@@ -198,6 +200,7 @@ model Club {
 
   user          User                     @relation(fields: [userId], references: [id])
   registrations TournamentRegistration[] @relation("ClubAthleteRegistrations")
+  rosterAthletes User[]                  @relation("HomeClubAthletes")
 
   @@index([userId])
   @@map("clubs")

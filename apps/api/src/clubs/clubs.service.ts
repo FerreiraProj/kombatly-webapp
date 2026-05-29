@@ -41,11 +41,12 @@ export class ClubsService {
 
   async getAthletes(userId: string) {
     const club = await this.prisma.club.findUnique({ where: { userId } });
-    if (!club) return [];
+    if (!club) throw new NotFoundException('Club not found');
 
     return this.prisma.user.findMany({
-      where: { role: UserRole.ATHLETE, athleteRegistrations: { some: { clubId: club.id } } },
+      where: { homeClubId: club.id },
       select: { id: true, firstName: true, lastName: true, email: true, phone: true, createdAt: true },
+      orderBy: { lastName: 'asc' },
     });
   }
 
@@ -54,7 +55,12 @@ export class ClubsService {
     if (!club) throw new NotFoundException('Club not found');
 
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (existing) return existing;
+    if (existing) {
+      if (existing.homeClubId !== club.id) {
+        await this.prisma.user.update({ where: { id: existing.id }, data: { homeClubId: club.id } });
+      }
+      return existing;
+    }
 
     const bcrypt = await import('bcryptjs');
     const passwordHash = await bcrypt.hash(Math.random().toString(36).slice(-10), 10);
@@ -68,6 +74,7 @@ export class ClubsService {
         phone: dto.phone,
         role: UserRole.ATHLETE,
         emailVerifiedAt: new Date(),
+        homeClubId: club.id,
       },
       select: { id: true, firstName: true, lastName: true, email: true, phone: true, createdAt: true },
     });
