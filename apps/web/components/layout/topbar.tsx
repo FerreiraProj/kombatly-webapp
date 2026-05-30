@@ -1,10 +1,14 @@
 'use client';
 
-import { Bell, BellOff, Timer } from 'lucide-react';
+import { Bell, BellOff, Menu } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { registerPush, unregisterPush, isPushSubscribed } from '@/lib/push';
 
-export function Topbar() {
+interface TopbarProps {
+  onMenuToggle?: () => void;
+}
+
+export function Topbar({ onMenuToggle }: TopbarProps) {
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -30,19 +34,19 @@ export function Topbar() {
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-surface px-4 sm:px-6">
       <div className="flex items-center gap-3">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={onMenuToggle}
+          className="lg:hidden flex items-center justify-center h-8 w-8 rounded border border-border text-muted-foreground hover:text-foreground hover:bg-surface-elevated transition-colors"
+          aria-label="Abrir menu"
+        >
+          <Menu className="h-4 w-4" />
+        </button>
+        <p className="text-xs uppercase tracking-widest text-muted-foreground hidden sm:block">
           Elite Promoter Command
         </p>
       </div>
       <div className="flex items-center gap-4">
-        {/* Next live event */}
-        <div className="hidden items-center gap-2 rounded border border-border bg-surface-elevated px-3 py-1.5 sm:flex">
-          <Timer className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-xs font-medium uppercase tracking-wider text-foreground">
-            Next Live Event
-          </span>
-          <span className="text-xs font-bold text-primary">—</span>
-        </div>
         {/* Push notifications toggle */}
         <button
           onClick={togglePush}

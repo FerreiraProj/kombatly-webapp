@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Trophy, Zap, Users, BarChart3, ChevronRight, Check } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import { MobileNav } from './MobileNav';
 
 export default async function LandingPage() {
   const t = await getTranslations('landing');
@@ -69,12 +70,19 @@ export default async function LandingPage() {
               <Link href="/events" className="text-primary font-semibold hover:text-red-700 transition-colors">{t('navEvents')}</Link>
               <a href="#pricing" className="hover:text-foreground transition-colors">{t('navPricing')}</a>
             </nav>
-            <Link
-              href="/register"
-              className="rounded bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
-            >
-              {t('navGetStarted')}
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/register"
+                className="hidden md:inline-flex rounded bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
+              >
+                {t('navGetStarted')}
+              </Link>
+              <MobileNav
+                navEvents={t('navEvents')}
+                navPricing={t('navPricing')}
+                navGetStarted={t('navGetStarted')}
+              />
+            </div>
           </div>
         </div>
       </header>
