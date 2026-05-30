@@ -42,12 +42,28 @@ export default async function PublicTournamentPage({ params }: { params: Promise
   const isOpen = tournament.status === 'PUBLIC';
   const categories = tournament.categories ?? [];
 
-  function categoryLabel(cat: any): string {
+  // Group categories by grade, sorted by grade displayOrder
+  const gradeGroups: { gradeId: string; gradeName: string; displayOrder: number; cats: any[] }[] = [];
+  const gradeMap = new Map<string, typeof gradeGroups[0]>();
+  for (const cat of categories) {
+    const key = cat.gradeId ?? 'custom';
+    if (!gradeMap.has(key)) {
+      const entry = {
+        gradeId: key,
+        gradeName: cat.grade?.nameEn ?? cat.grade?.namePt ?? t('customCategory'),
+        displayOrder: cat.grade?.displayOrder ?? 999,
+        cats: [],
+      };
+      gradeMap.set(key, entry);
+      gradeGroups.push(entry);
+    }
+    gradeMap.get(key)!.cats.push(cat);
+  }
+  gradeGroups.sort((a, b) => a.displayOrder - b.displayOrder);
+
+  function weightLabel(cat: any): string {
     if (cat.isCustom) return cat.customName ?? t('customCategory');
-    const grade = cat.grade?.names?.en ?? '';
-    const gender = cat.gender?.code === 'M' ? t('genderMale') : cat.gender?.code === 'F' ? t('genderFemale') : '';
-    const weight = cat.weightCategory?.displayNames?.en ?? cat.weightCategory?.strWeight ?? '';
-    return [grade, gender, weight].filter(Boolean).join(' · ');
+    return cat.weightCategory?.displayNameEn ?? cat.weightCategory?.strWeight ?? '—';
   }
 
   const infoGrid = [
@@ -107,31 +123,44 @@ export default async function PublicTournamentPage({ params }: { params: Promise
           ))}
         </div>
 
-        {/* Categories table */}
-        {categories.length > 0 && (
+        {/* Categories grouped by grade */}
+        {gradeGroups.length > 0 && (
           <section className="space-y-3">
             <h2 className="font-heading text-2xl text-foreground">{t('categoriesTitle')}</h2>
-            <div className="rounded-lg border border-border overflow-hidden">
-              <div className="hidden sm:grid grid-cols-12 gap-3 border-b border-border bg-surface-elevated px-5 py-3 text-xs uppercase tracking-widest text-muted-foreground">
-                <span className="col-span-5">{t('colCategory')}</span>
-                <span className="col-span-3">{t('colGrade')}</span>
-                <span className="col-span-2">{t('colGender')}</span>
-                <span className="col-span-2">{t('colVest')}</span>
-              </div>
-              <ul className="divide-y divide-border">
-                {categories.map((cat: any) => (
-                  <li key={cat.id} className="grid grid-cols-1 gap-1 px-5 py-3 text-sm sm:grid-cols-12 sm:items-center sm:gap-3">
-                    <div className="col-span-5 font-medium text-foreground">{categoryLabel(cat)}</div>
-                    <div className="col-span-3 text-muted-foreground text-xs">{cat.grade?.names?.en ?? '—'}</div>
-                    <div className="col-span-2 text-muted-foreground text-xs">
-                      {cat.gender?.code === 'M' ? t('genderMale') : cat.gender?.code === 'F' ? t('genderFemale') : '—'}
+            <div className="space-y-2">
+              {gradeGroups.map((group) => (
+                <details key={group.gradeId} className="group rounded-lg border border-border bg-surface overflow-hidden" open>
+                  <summary className="flex cursor-pointer items-center justify-between px-5 py-3.5 hover:bg-surface-elevated transition-colors list-none">
+                    <div className="flex items-center gap-3">
+                      <svg className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                      <span className="font-heading text-sm uppercase tracking-widest text-foreground">{group.gradeName}</span>
+                      <span className="text-xs text-muted-foreground">{group.cats.length} {group.cats.length === 1 ? t('categoriesCategory') : t('categoriesCategories')}</span>
                     </div>
-                    <div className="col-span-2 text-muted-foreground text-xs">
-                      {cat.vestType ? `Vest ${cat.vestType}` : '—'}
+                  </summary>
+                  <div className="border-t border-border">
+                    <div className="hidden sm:grid grid-cols-12 gap-3 bg-surface-elevated px-5 py-2 text-xs uppercase tracking-widest text-muted-foreground">
+                      <span className="col-span-5">{t('colCategory')}</span>
+                      <span className="col-span-3">{t('colGender')}</span>
+                      <span className="col-span-4">{t('colVest')}</span>
                     </div>
-                  </li>
-                ))}
-              </ul>
+                    <ul className="divide-y divide-border/50">
+                      {group.cats.map((cat: any) => (
+                        <li key={cat.id} className="grid grid-cols-1 gap-1 px-5 py-2.5 text-sm sm:grid-cols-12 sm:items-center sm:gap-3">
+                          <div className="col-span-5 font-medium text-foreground">{weightLabel(cat)}</div>
+                          <div className="col-span-3 text-muted-foreground text-xs">
+                            {cat.gender?.code === 'M' ? t('genderMale') : cat.gender?.code === 'F' ? t('genderFemale') : '—'}
+                          </div>
+                          <div className="col-span-4 text-muted-foreground text-xs">
+                            {cat.vestType ? `Vest ${cat.vestType}` : '—'}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </details>
+              ))}
             </div>
           </section>
         )}

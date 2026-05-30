@@ -743,6 +743,8 @@
     "genderMale": "Masculino",
     "genderFemale": "Feminino",
     "customCategory": "Personalizado",
+    "categoriesCategory": "categoria",
+    "categoriesCategories": "categorias",
     "poweredBy": "Com tecnologia de"
   }
 }

@@ -743,6 +743,8 @@
     "genderMale": "Male",
     "genderFemale": "Female",
     "customCategory": "Custom",
+    "categoriesCategory": "category",
+    "categoriesCategories": "categories",
     "poweredBy": "Powered by"
   }
 }
