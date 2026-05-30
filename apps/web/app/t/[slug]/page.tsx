@@ -129,7 +129,7 @@ export default async function PublicTournamentPage({ params }: { params: Promise
             <h2 className="font-heading text-2xl text-foreground">{t('categoriesTitle')}</h2>
             <div className="space-y-2">
               {gradeGroups.map((group) => (
-                <details key={group.gradeId} className="group rounded-lg border border-border bg-surface overflow-hidden" open>
+                <details key={group.gradeId} className="group rounded-lg border border-border bg-surface overflow-hidden">
                   <summary className="flex cursor-pointer items-center justify-between px-5 py-3.5 hover:bg-surface-elevated transition-colors list-none">
                     <div className="flex items-center gap-3">
                       <svg className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
