@@ -83,11 +83,12 @@ export default async function LandingPage() {
       <section className="relative flex min-h-screen items-center overflow-hidden pt-14">
         {/* Athlete background image */}
         <div className="absolute inset-0">
-          <img src="/hero-athlete.jpg" alt="" className="h-full w-full object-cover object-right" />
+          <img src="/hero-athlete.jpg" alt="" className="h-full w-full object-cover [object-position:55%_center] lg:[object-position:65%_center]" />
         </div>
-        {/* Gradient overlay: dark on the left for text readability, transparent on the right */}
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/88 to-background/20" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-background/40" />
+        {/* Mobile: dark overlay from top + bottom for text readability */}
+        <div className="absolute inset-0 bg-background/60 lg:bg-transparent" />
+        {/* Desktop: dark gradient from left */}
+        <div className="absolute inset-0 hidden lg:block bg-gradient-to-r from-background via-background/85 to-background/15" />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
