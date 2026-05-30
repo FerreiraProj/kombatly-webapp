@@ -23,7 +23,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
   const navItems = [
     { label: t('dashboard'),   href: '/dashboard',   icon: LayoutDashboard },
-    { label: t('events'),      href: '/events',       icon: Globe },
+    { label: t('events'),      href: '/dashboard/events', icon: Globe },
     { label: t('tournaments'), href: '/tournaments',  icon: Trophy },
     { label: t('athletes'),    href: '/athletes',     icon: Users },
     { label: t('financials'),  href: '/financials',   icon: DollarSign },
