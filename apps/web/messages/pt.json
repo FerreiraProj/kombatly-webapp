@@ -265,13 +265,31 @@
     "next": "Seguinte",
     "creating": "A criar...",
     "createTournament": "Criar Torneio",
+    "country": "País",
+    "selectCountry": "Selecionar país",
+    "city": "Cidade",
+    "venue": "Local / Venue",
     "errors": {
       "nameTooShort": "O nome deve ter pelo menos 3 caracteres",
       "startDateRequired": "Data de início obrigatória",
       "deadlineRequired": "Prazo de inscrição obrigatório",
       "startTimeRequired": "Hora de início obrigatória",
+      "countryRequired": "País obrigatório",
       "generic": "Algo correu mal. Por favor tente novamente."
     }
+  },
+  "events": {
+    "title": "EVENTOS MUNDIAIS",
+    "subtitle": "Agenda de Competições",
+    "searchPlaceholder": "Pesquisar torneios...",
+    "filterCountry": "País",
+    "filterAllCountries": "Todos os países",
+    "filterUpcoming": "Próximos",
+    "filterLive": "Ao Vivo",
+    "filterPast": "Passados",
+    "filterAll": "Todos",
+    "noEvents": "NENHUM TORNEIO ENCONTRADO",
+    "noEventsDesc": "Tente ajustar os filtros de pesquisa"
   },
   "settings": {
     "title": "DEFINIÇÕES",
@@ -712,7 +730,8 @@
     "colVest": "Colete",
     "ctaTitle": "INSCRIÇÕES ABERTAS",
     "ctaDeadline": "Prazo: {date}",
-    "ctaBtn": "Registar o Seu Clube",
+    "ctaBtn": "Registar Atletas",
+    "loginToRegister": "Login para Inscrever",
     "liveLabel": "Evento em Curso",
     "liveDesc": "A competição está em curso. Os resultados serão atualizados em tempo real.",
     "statusLive": "Ao Vivo",

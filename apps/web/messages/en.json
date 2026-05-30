@@ -265,13 +265,31 @@
     "next": "Next",
     "creating": "Creating...",
     "createTournament": "Create Tournament",
+    "country": "Country",
+    "selectCountry": "Select country",
+    "city": "City",
+    "venue": "Venue",
     "errors": {
       "nameTooShort": "Name must be at least 3 characters",
       "startDateRequired": "Start date is required",
       "deadlineRequired": "Registration deadline is required",
       "startTimeRequired": "Start time is required",
+      "countryRequired": "Country is required",
       "generic": "Something went wrong. Please try again."
     }
+  },
+  "events": {
+    "title": "WORLD EVENTS",
+    "subtitle": "Competition Agenda",
+    "searchPlaceholder": "Search tournaments...",
+    "filterCountry": "Country",
+    "filterAllCountries": "All countries",
+    "filterUpcoming": "Upcoming",
+    "filterLive": "Live",
+    "filterPast": "Past",
+    "filterAll": "All",
+    "noEvents": "NO TOURNAMENTS FOUND",
+    "noEventsDesc": "Try adjusting your search filters"
   },
   "settings": {
     "title": "SETTINGS",
@@ -712,7 +730,8 @@
     "colVest": "Vest",
     "ctaTitle": "REGISTRATIONS OPEN",
     "ctaDeadline": "Deadline: {date}",
-    "ctaBtn": "Register Your Club",
+    "ctaBtn": "Register Athletes",
+    "loginToRegister": "Login to Register",
     "liveLabel": "Event Ongoing",
     "liveDesc": "Competition is underway. Results will be updated in real time.",
     "statusLive": "Live",

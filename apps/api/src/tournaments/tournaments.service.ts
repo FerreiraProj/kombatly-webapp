@@ -35,6 +35,62 @@ export class TournamentsService {
     return tournament;
   }
 
+  async findPublicEvents(filters: {
+    country?: string;
+    status?: 'upcoming' | 'live' | 'past' | 'all';
+    search?: string;
+    page?: number;
+  }): Promise<{ data: any[]; total: number; page: number; pages: number }> {
+    const PAGE_SIZE = 20;
+    const page = Math.max(1, filters.page ?? 1);
+    const now = new Date();
+    const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+
+    let statusFilter: any;
+    switch (filters.status) {
+      case 'upcoming': statusFilter = { status: TournamentStatus.PUBLIC, startDate: { gte: now } }; break;
+      case 'live':     statusFilter = { status: TournamentStatus.ONGOING }; break;
+      case 'past':     statusFilter = { status: TournamentStatus.FINISHED, startDate: { gte: ninetyDaysAgo } }; break;
+      default:         statusFilter = { status: { in: [TournamentStatus.PUBLIC, TournamentStatus.ONGOING] } };
+    }
+
+    const where: any = {
+      ...statusFilter,
+      ...(filters.country ? { country: { equals: filters.country, mode: 'insensitive' } } : {}),
+      ...(filters.search ? {
+        OR: [
+          { name: { contains: filters.search, mode: 'insensitive' } },
+          { city: { contains: filters.search, mode: 'insensitive' } },
+          { venue: { contains: filters.search, mode: 'insensitive' } },
+        ],
+      } : {}),
+    };
+
+    const orderBy = filters.status === 'past' ? { startDate: 'desc' as const } : { startDate: 'asc' as const };
+
+    const [total, data] = await Promise.all([
+      this.prisma.tournament.count({ where }),
+      this.prisma.tournament.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+        include: {
+          _count: { select: { registrations: true, categories: true } },
+          promoter: {
+            select: {
+              firstName: true,
+              lastName: true,
+              club: { select: { name: true, city: true, country: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return { data, total, page, pages: Math.ceil(total / PAGE_SIZE) };
+  }
+
   async findAll(promoterId?: string, status?: TournamentStatus): Promise<any[]> {
     return this.prisma.tournament.findMany({
       where: {

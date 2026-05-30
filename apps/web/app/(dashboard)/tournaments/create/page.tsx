@@ -9,6 +9,32 @@ import { z } from 'zod';
 import { ChevronLeft, ChevronRight, Check, Trophy, Settings, Eye, Tag } from 'lucide-react';
 import { tournamentsApi, WeightCategory, Grade, CreateTournamentDto } from '@/lib/api/tournaments';
 
+// ── Country list ─────────────────────────────────────────────────────────────
+
+const COUNTRIES = [
+  { code: 'PT', name: 'Portugal' }, { code: 'ES', name: 'Espanha' },
+  { code: 'FR', name: 'França' },   { code: 'DE', name: 'Alemanha' },
+  { code: 'IT', name: 'Itália' },   { code: 'GB', name: 'Reino Unido' },
+  { code: 'IE', name: 'Irlanda' },  { code: 'NL', name: 'Países Baixos' },
+  { code: 'BE', name: 'Bélgica' },  { code: 'CH', name: 'Suíça' },
+  { code: 'AT', name: 'Áustria' },  { code: 'PL', name: 'Polónia' },
+  { code: 'CZ', name: 'República Checa' }, { code: 'SK', name: 'Eslováquia' },
+  { code: 'HU', name: 'Hungria' },  { code: 'RO', name: 'Roménia' },
+  { code: 'BG', name: 'Bulgária' }, { code: 'HR', name: 'Croácia' },
+  { code: 'RS', name: 'Sérvia' },   { code: 'GR', name: 'Grécia' },
+  { code: 'TR', name: 'Turquia' },  { code: 'RU', name: 'Rússia' },
+  { code: 'UA', name: 'Ucrânia' },  { code: 'BR', name: 'Brasil' },
+  { code: 'US', name: 'Estados Unidos' }, { code: 'CA', name: 'Canadá' },
+  { code: 'MX', name: 'México' },   { code: 'AR', name: 'Argentina' },
+  { code: 'CO', name: 'Colômbia' }, { code: 'CL', name: 'Chile' },
+  { code: 'KR', name: 'Coreia do Sul' }, { code: 'JP', name: 'Japão' },
+  { code: 'CN', name: 'China' },    { code: 'AU', name: 'Austrália' },
+  { code: 'NZ', name: 'Nova Zelândia' }, { code: 'ZA', name: 'África do Sul' },
+  { code: 'MA', name: 'Marrocos' }, { code: 'EG', name: 'Egito' },
+  { code: 'NG', name: 'Nigéria' },  { code: 'AO', name: 'Angola' },
+  { code: 'MZ', name: 'Moçambique' }, { code: 'OTHER', name: 'Outro' },
+];
+
 // ── Category selector helpers ─────────────────────────────────────────────────
 
 function groupByGradeGender(cats: WeightCategory[]) {
@@ -41,6 +67,9 @@ export default function CreateTournamentPage() {
     endDate: z.string().optional(),
     registrationDeadline: z.string().min(1, t('errors.deadlineRequired')),
     startTime: z.string().min(1, t('errors.startTimeRequired')),
+    country: z.string().min(1, t('errors.countryRequired')),
+    city: z.string().optional(),
+    venue: z.string().optional(),
     numAreas: z.coerce.number().int().min(1).max(20),
     drawType: z.enum(['random', 'ranking']),
     numRounds: z.coerce.number().int().min(1).max(10),
@@ -85,6 +114,9 @@ export default function CreateTournamentPage() {
       athletesVisible: true,
       drawVisible: false,
       areasVisible: false,
+      country: '',
+      city: '',
+      venue: '',
     },
   });
 
@@ -95,7 +127,7 @@ export default function CreateTournamentPage() {
   }, []);
 
   const stepFields: Record<number, (keyof FormValues)[]> = {
-    1: ['name', 'startDate', 'registrationDeadline', 'startTime'],
+    1: ['name', 'startDate', 'registrationDeadline', 'startTime', 'country'],
     2: ['numAreas', 'drawType', 'numRounds'],
     3: [],
     4: [],
@@ -143,6 +175,9 @@ export default function CreateTournamentPage() {
         startTime: values.startTime,
         endDate: values.endDate || undefined,
         registrationDeadline: values.registrationDeadline,
+        country: values.country,
+        city: values.city || undefined,
+        venue: values.venue || undefined,
         numAreas: values.numAreas,
         drawType: values.drawType.toUpperCase() as 'RANDOM' | 'RANKING',
         numRounds: values.numRounds,
@@ -256,6 +291,21 @@ export default function CreateTournamentPage() {
                 </Field>
                 <Field label={t('startTime')} error={errors.startTime?.message} required>
                   <input type="time" {...register('startTime')} className={inputCls(!!errors.startTime)} />
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <Field label={t('country')} error={errors.country?.message} required>
+                  <select {...register('country')} className={inputCls(!!errors.country)}>
+                    <option value="">{t('selectCountry')}</option>
+                    {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                  </select>
+                </Field>
+                <Field label={t('city')} error={errors.city?.message}>
+                  <input {...register('city')} placeholder="e.g. Lisboa" className={inputCls(false)} />
+                </Field>
+                <Field label={t('venue')} error={errors.venue?.message}>
+                  <input {...register('venue')} placeholder="e.g. Pavilhão Municipal" className={inputCls(false)} />
                 </Field>
               </div>
             </div>

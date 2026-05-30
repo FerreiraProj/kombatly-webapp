@@ -40,6 +40,20 @@ export class CreateTournamentDto {
   @Max(5)
   numRounds?: number;
 
+  @IsString()
+  @Length(0, 100)
+  country: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 100)
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 200)
+  venue?: string;
+
   @IsOptional()
   @IsBoolean()
   hasVestLimitation?: boolean;

@@ -328,6 +328,9 @@ model Tournament {
   athletesVisible          AthletesVisible  @default(NONE)
   drawVisible              Boolean          @default(false)
   areasVisible             Boolean          @default(false)
+  country                  String           @default("")
+  city                     String?
+  venue                    String?
   flyerUrl                 String?
   sponsorLogos             Json?
   status                   TournamentStatus @default(PRIVATE)

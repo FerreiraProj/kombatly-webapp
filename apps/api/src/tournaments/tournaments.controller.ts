@@ -30,6 +30,29 @@ export class TournamentsController {
     return this.service.getStandardCategories();
   }
 
+  // ── Public events agenda ─────────────────────────────────────────────────
+
+  @Get('events')
+  @ApiOperation({ summary: 'List public tournament events (agenda)' })
+  @ApiQuery({ name: 'country', required: false })
+  @ApiQuery({ name: 'status', required: false, enum: ['upcoming', 'live', 'past', 'all'] })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'Paginated list of public tournaments.' })
+  getPublicEvents(
+    @Query('country') country?: string,
+    @Query('status') status?: 'upcoming' | 'live' | 'past' | 'all',
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+  ) {
+    return this.service.findPublicEvents({
+      country,
+      status,
+      search,
+      page: page ? parseInt(page, 10) : 1,
+    });
+  }
+
   // ── Tournament CRUD ───────────────────────────────────────────────────────
 
   @Post()

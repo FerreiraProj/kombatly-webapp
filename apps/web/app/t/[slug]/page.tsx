@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Calendar, MapPin, Users, Trophy, Clock } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import { RegisterCta } from './RegisterCta';
 
 type Tournament = any;
 
@@ -137,20 +138,14 @@ export default async function PublicTournamentPage({ params }: { params: Promise
 
         {/* Registration CTA */}
         {isOpen && (
-          <div className="rounded-lg border border-primary/30 bg-primary/5 px-6 py-8 text-center space-y-3">
-            <Trophy className="mx-auto h-10 w-10 text-primary" />
-            <h2 className="font-heading text-2xl text-foreground">{t('ctaTitle')}</h2>
-            <p className="text-muted-foreground text-sm">
-              {t('ctaDeadline', { date: fmt(tournament.registrationDeadline) })}
-            </p>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 rounded bg-primary px-7 py-3 font-semibold text-white hover:bg-red-700 transition-colors"
-            >
-              <Users className="h-4 w-4" />
-              {t('ctaBtn')}
-            </Link>
-          </div>
+          <RegisterCta
+            tournamentId={tournament.id}
+            deadline={tournament.registrationDeadline}
+            ctaTitle={t('ctaTitle')}
+            ctaDeadline={t('ctaDeadline', { date: fmt(tournament.registrationDeadline) })}
+            ctaBtn={t('ctaBtn')}
+            loginToRegister={t('loginToRegister')}
+          />
         )}
 
         {isLive && (

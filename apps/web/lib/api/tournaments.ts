@@ -74,6 +74,9 @@ export interface CreateTournamentDto {
   endDate?: string;
   registrationDeadline: string;
   startTime: string;
+  country: string;
+  city?: string;
+  venue?: string;
   numAreas: number;
   drawType: string;
   numRounds: number;
@@ -86,6 +89,29 @@ export interface CreateTournamentDto {
   drawVisible?: boolean;
   areasVisible?: boolean;
   categoryIds?: string[];
+}
+
+export interface TournamentEvent {
+  id: string;
+  name: string;
+  slug: string;
+  country: string;
+  city?: string;
+  venue?: string;
+  startDate: string;
+  startTime: string;
+  endDate?: string;
+  registrationDeadline: string;
+  status: string;
+  promoter: { firstName: string; lastName: string; club?: { name: string; city?: string; country?: string } };
+  _count: { registrations: number; categories: number };
+}
+
+export interface TournamentEventsResponse {
+  data: TournamentEvent[];
+  total: number;
+  page: number;
+  pages: number;
 }
 
 export const tournamentsApi = {
@@ -105,6 +131,9 @@ export const tournamentsApi = {
 
   findBySlug: (slug: string) =>
     apiClient.get<Tournament>(`/tournaments/slug/${slug}`).then((r) => r.data),
+
+  getEvents: (params?: { country?: string; status?: string; search?: string; page?: number }) =>
+    apiClient.get<TournamentEventsResponse>('/tournaments/events', { params }).then((r) => r.data),
 
   create: (dto: CreateTournamentDto) =>
     apiClient.post<Tournament>('/tournaments', dto).then((r) => r.data),
