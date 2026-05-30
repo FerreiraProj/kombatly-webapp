@@ -171,13 +171,21 @@ function EmptyState({ hasSearch, t }: { hasSearch: boolean; t: any }) {
         <>
           <p className="font-heading text-xl text-muted-foreground">{t('noTournamentsYet')}</p>
           <p className="mt-1 text-sm text-muted-foreground">{t('createFirstTournament')}</p>
-          <Link
-            href="/tournaments/create"
-            className="mt-6 inline-flex items-center gap-2 rounded bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            {t('createTournament')}
-          </Link>
+          <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+            <Link
+              href="/tournaments/create"
+              className="inline-flex items-center gap-2 rounded bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              {t('createTournament')}
+            </Link>
+            <Link
+              href="/events"
+              className="inline-flex items-center gap-2 rounded border border-border px-6 py-2.5 text-sm font-semibold text-foreground hover:border-primary hover:text-primary transition-colors"
+            >
+              {t('browseEvents')}
+            </Link>
+          </div>
         </>
       )}
     </div>

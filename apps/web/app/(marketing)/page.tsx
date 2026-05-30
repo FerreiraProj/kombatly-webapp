@@ -66,9 +66,8 @@ export default async function LandingPage() {
             <span className="font-heading text-2xl text-primary tracking-widest">TAEKWOMBATS</span>
             <nav className="hidden items-center gap-8 text-sm font-medium text-muted-foreground md:flex">
               <a href="#features" className="hover:text-foreground transition-colors">{t('navFeatures')}</a>
-              <a href="#tournaments" className="hover:text-foreground transition-colors">{t('navTournaments')}</a>
+              <Link href="/events" className="text-primary font-semibold hover:text-red-700 transition-colors">{t('navEvents')}</Link>
               <a href="#pricing" className="hover:text-foreground transition-colors">{t('navPricing')}</a>
-              <a href="#athletes" className="hover:text-foreground transition-colors">{t('navAthletes')}</a>
             </nav>
             <Link
               href="/register"

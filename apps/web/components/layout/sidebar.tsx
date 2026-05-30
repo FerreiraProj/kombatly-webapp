@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutDashboard, Trophy, Users, DollarSign, Settings, LogOut, ShieldAlert,
+  LayoutDashboard, Trophy, Users, DollarSign, Settings, LogOut, ShieldAlert, Globe,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,7 @@ export function Sidebar() {
 
   const navItems = [
     { label: t('dashboard'),   href: '/dashboard',   icon: LayoutDashboard },
+    { label: t('events'),      href: '/events',       icon: Globe },
     { label: t('tournaments'), href: '/tournaments',  icon: Trophy },
     { label: t('athletes'),    href: '/athletes',     icon: Users },
     { label: t('financials'),  href: '/financials',   icon: DollarSign },
