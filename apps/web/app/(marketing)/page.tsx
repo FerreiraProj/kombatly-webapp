@@ -63,7 +63,7 @@ export default async function LandingPage() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between">
-            <span className="font-heading text-2xl text-primary tracking-widest">TAEKWOMBATS</span>
+            <span className="font-heading text-2xl tracking-widest"><span className="text-primary">KOMBATLY</span><span className="text-foreground">PRO</span></span>
             <nav className="hidden items-center gap-8 text-sm font-medium text-muted-foreground md:flex">
               <a href="#features" className="hover:text-foreground transition-colors">{t('navFeatures')}</a>
               <Link href="/events" className="text-primary font-semibold hover:text-red-700 transition-colors">{t('navEvents')}</Link>
@@ -81,10 +81,13 @@ export default async function LandingPage() {
 
       {/* ── Hero ── */}
       <section className="relative flex min-h-screen items-center overflow-hidden pt-14">
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-red-950/20" />
-        <div className="absolute right-0 top-0 h-full w-1/2 opacity-10">
-          <div className="h-full w-full bg-gradient-to-l from-primary/30 to-transparent" />
+        {/* Athlete background image */}
+        <div className="absolute inset-0">
+          <img src="/hero-athlete.jpg" alt="" className="h-full w-full object-cover object-right" />
         </div>
+        {/* Gradient overlay: dark on the left for text readability, transparent on the right */}
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/88 to-background/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-background/40" />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
@@ -229,7 +232,7 @@ export default async function LandingPage() {
       <footer className="border-t border-border py-10">
         <div className="mx-auto max-w-7xl px-4">
           <div className="text-center">
-            <span className="font-heading text-xl tracking-widest text-foreground">TAEKWOMBATS</span>
+            <span className="font-heading text-xl tracking-widest"><span className="text-primary">KOMBATLY</span><span className="text-foreground">PRO</span></span>
             <div className="mt-4 flex flex-wrap justify-center gap-6 text-xs text-muted-foreground">
               <a href="#" className="hover:text-foreground transition-colors">{t('footerTerms')}</a>
               <a href="#" className="hover:text-foreground transition-colors">{t('footerPrivacy')}</a>

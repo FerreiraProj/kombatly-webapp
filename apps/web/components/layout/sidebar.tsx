@@ -42,7 +42,7 @@ export function Sidebar() {
   return (
     <aside className="hidden w-52 flex-shrink-0 flex-col border-r border-border bg-surface lg:flex">
       <div className="flex h-14 items-center px-5 border-b border-border">
-        <span className="font-heading text-xl text-primary tracking-widest">TAEKWOMBATS</span>
+        <span className="font-heading text-xl tracking-widest"><span className="text-primary">KOMBATLY</span><span className="text-foreground">PRO</span></span>
       </div>
 
       <Link

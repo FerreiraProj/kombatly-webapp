@@ -199,7 +199,7 @@ export default function EventsPage() {
       <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between">
-            <Link href="/" className="font-heading text-xl text-primary tracking-widest">TAEKWOMBATS</Link>
+            <Link href="/" className="font-heading text-xl tracking-widest"><span className="text-primary">KOMBATLY</span><span className="text-foreground">PRO</span></Link>
             <div className="flex items-center gap-4">
               <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Login</Link>
               <Link href="/register" className="rounded bg-primary px-4 py-1.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors">
@@ -310,8 +310,8 @@ export default function EventsPage() {
       {/* Footer */}
       <footer className="border-t border-border py-8 mt-16">
         <div className="mx-auto max-w-7xl px-4 text-center text-xs text-muted-foreground">
-          <Link href="/" className="font-heading tracking-widest text-foreground">TAEKWOMBATS</Link>
-          <p className="mt-2">© {new Date().getFullYear()} Taekwombats. Todos os direitos reservados.</p>
+          <Link href="/" className="font-heading tracking-widest"><span className="text-primary">KOMBATLY</span><span className="text-foreground">PRO</span></Link>
+          <p className="mt-2">© {new Date().getFullYear()} KombatlyPro. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>

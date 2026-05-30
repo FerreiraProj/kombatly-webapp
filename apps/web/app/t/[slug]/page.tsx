@@ -62,7 +62,7 @@ export default async function PublicTournamentPage({ params }: { params: Promise
       {/* Topbar */}
       <header className="border-b border-border bg-surface px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <Link href="/" className="font-heading text-lg text-primary tracking-widest">TAEKWOMBATS</Link>
+          <Link href="/" className="font-heading text-lg tracking-widest"><span className="text-primary">KOMBATLY</span><span className="text-foreground">PRO</span></Link>
           <div className="flex items-center gap-2">
             {isLive ? (
               <span className="badge-live flex items-center gap-1">
