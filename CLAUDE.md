@@ -1,4 +1,31 @@
-# CLAUDE.md
+# 🧠 Cérebro do Projeto (Obsidian)
+
+## 🚨 Regra de Git — OBRIGATÓRIO
+- **Faz SEMPRE push para a branch `dev`** (staging: `dev.kombatlypro.com`)
+- **NUNCA faças push para `main`** (produção: `kombatlypro.com`) a não ser que o utilizador diga explicitamente "envia para produção" ou "push para main"
+
+---
+
+## Regras de Ouro para Poupar Tokens
+1. **NUNCA** leias a pasta `_Obsidian` inteira
+2. Consulta SEMPRE o `INDEX.md` na raiz para visão geral
+3. Só leias ficheiros específicos do Obsidian se o `INDEX.md` indicar ou se eu pedir
+4. Sê conciso - não repitas informação que já está nos ficheiros
+
+## Localização do Cérebro
+- **Vault Obsidian**: `../../_Obsidian/Kombatly/`
+- **Ficheiro de Base de Dados**: `../../_Obsidian/Kombatly/BaseDeDados.md` (Schema PostgreSQL completo)
+- **Ficheiro de Arquitetura**: `../../_Obsidian/Kombatly/Arquitetura.md`
+- **Ficheiro de Funcionalidades**: `../../_Obsidian/Kombatly/Funcionalidades.md`
+
+## Quando Consultar o Cérebro
+- **Base de Dados**: Quando precisares de saber estrutura de tabelas, relações, enums
+- **Arquitetura**: Quando precisares de contexto sobre decisões de design
+- **Funcionalidades**: Quando precisares de saber o que uma feature deve fazer
+
+---
+
+# 📚 Kombatly (taekwombats_webapp) - Documentação Técnica
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
