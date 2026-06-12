@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
-import { TournamentStatus } from '@taekwombats/database';
+import { TournamentStatus, RoundType, CombatStatus, PlatformPaymentStatus } from '@taekwombats/database';
 import slugify from 'slugify';
 
 @Injectable()
@@ -118,8 +118,14 @@ export class TournamentsService {
   }
 
   async setStatus(promoterId: string, id: string, status: TournamentStatus): Promise<any> {
-    await this.findOwned(id, promoterId);
-    return this.prisma.tournament.update({ where: { id }, data: { status } });
+    const tournament = await this.findOwned(id, promoterId);
+    const updated = await this.prisma.tournament.update({ where: { id }, data: { status } });
+
+    if (status === TournamentStatus.FINISHED && !tournament.platformPaymentId) {
+      await this.createPlatformPayment(id, promoterId);
+    }
+
+    return updated;
   }
 
   async remove(promoterId: string, id: string): Promise<any> {
@@ -209,6 +215,111 @@ export class TournamentsService {
       },
       orderBy: [{ category: { grade: { displayOrder: 'asc' } } }, { athlete: { lastName: 'asc' } }],
     });
+  }
+
+  // ── Medalists ─────────────────────────────────────────────────────────────
+
+  async getMedalists(tournamentId: string): Promise<any[]> {
+    const tournament = await this.prisma.tournament.findUnique({ where: { id: tournamentId } });
+    if (!tournament) throw new NotFoundException('Tournament not found');
+
+    const combats = await this.prisma.combat.findMany({
+      where: {
+        tournamentId,
+        status: CombatStatus.FINISHED,
+        roundType: { in: [RoundType.FINAL, RoundType.BRONZE] },
+      },
+      include: {
+        category: { include: { grade: true, gender: true, weightCategory: true } },
+        redAthlete: {
+          include: {
+            athlete: { select: { id: true, firstName: true, lastName: true } },
+            club: { select: { name: true } },
+          },
+        },
+        blueAthlete: {
+          include: {
+            athlete: { select: { id: true, firstName: true, lastName: true } },
+            club: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    const byCategory = new Map<string, { final?: any; bronze?: any }>();
+    for (const combat of combats) {
+      if (!byCategory.has(combat.categoryId)) byCategory.set(combat.categoryId, {});
+      const entry = byCategory.get(combat.categoryId)!;
+      if (combat.roundType === RoundType.FINAL) entry.final = combat;
+      if (combat.roundType === RoundType.BRONZE) entry.bronze = combat;
+    }
+
+    return Array.from(byCategory.entries()).map(([categoryId, { final, bronze }]) => {
+      const category = final?.category ?? bronze?.category;
+      let gold = null;
+      let silver = null;
+      let bronzeMedalist = null;
+
+      if (final?.winnerId) {
+        const redWon = final.redAthleteId === final.winnerId;
+        gold = redWon ? final.redAthlete : final.blueAthlete;
+        silver = redWon ? final.blueAthlete : final.redAthlete;
+      }
+
+      if (bronze?.winnerId) {
+        const redWon = bronze.redAthleteId === bronze.winnerId;
+        bronzeMedalist = redWon ? bronze.redAthlete : bronze.blueAthlete;
+      }
+
+      return {
+        categoryId,
+        categoryLabel: this.buildCategoryLabel(category),
+        gold,
+        silver,
+        bronze: bronzeMedalist,
+      };
+    });
+  }
+
+  // ── Private helpers ───────────────────────────────────────────────────────
+
+  private async createPlatformPayment(tournamentId: string, promoterId: string): Promise<void> {
+    const existing = await this.prisma.platformPayment.findUnique({ where: { tournamentId } });
+    if (existing) return;
+
+    const numAthletes = await this.prisma.tournamentRegistration.count({
+      where: { tournamentId, isPaid: true },
+    });
+
+    const settings = await this.prisma.platformSettings.findFirst();
+    const costPerAthlete = Number(settings?.costPerAthlete ?? 2.5);
+    const totalAmount = costPerAthlete * numAthletes;
+
+    const payment = await this.prisma.platformPayment.create({
+      data: {
+        tournamentId,
+        promoterId,
+        numAthletes,
+        totalAmount,
+        finalAmount: totalAmount,
+        status: PlatformPaymentStatus.PENDING,
+      },
+    });
+
+    await this.prisma.tournament.update({
+      where: { id: tournamentId },
+      data: { platformPaymentId: payment.id },
+    });
+  }
+
+  private buildCategoryLabel(category: any): string {
+    if (!category) return '';
+    if (category.isCustom && category.customName) return category.customName;
+    return [
+      category.grade?.nameEn,
+      category.gender?.nameEn,
+      category.weightCategory?.displayNameEn,
+    ].filter(Boolean).join(' · ');
   }
 
   private async findOwned(id: string, promoterId: string) {

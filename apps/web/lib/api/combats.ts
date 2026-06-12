@@ -31,6 +31,7 @@ export interface Combat {
   winnerId: string | null;
   redScore: number;
   blueScore: number;
+  protestFiled: boolean;
   scheduledTime: string | null;
   startTime: string | null;
   endTime: string | null;

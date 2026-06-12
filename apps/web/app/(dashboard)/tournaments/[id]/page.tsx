@@ -7,9 +7,10 @@ import Link from 'next/link';
 import {
   Trophy, Users, Calendar, MapPin, ChevronLeft, Settings, Globe, Lock,
   Activity, CheckCircle, ExternalLink, UserPlus, Swords, ChevronRight, DollarSign,
-  ClipboardList, Radio,
+  ClipboardList, Radio, Medal, AlertTriangle, Loader2, CreditCard,
 } from 'lucide-react';
-import { tournamentsApi, Tournament } from '@/lib/api/tournaments';
+import { tournamentsApi, Tournament, Medalist } from '@/lib/api/tournaments';
+import { protestsApi, Protest, PROTEST_STATUS_LABELS, ProtestStatus } from '@/lib/api/protests';
 
 function formatDate(iso?: string) {
   if (!iso) return '—';
@@ -23,7 +24,7 @@ export default function TournamentDetailPage() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [transitioning, setTransitioning] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'registrations' | 'categories' | 'brackets' | 'invoices'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'registrations' | 'categories' | 'brackets' | 'invoices' | 'results' | 'protests'>('overview');
 
   const STATUS_CONFIG = {
     PRIVATE:  { label: t('statusDraft'),    badge: 'badge-draft',   next: 'PUBLIC',   nextLabel: t('statusPublish') },
@@ -67,12 +68,16 @@ export default function TournamentDetailPage() {
 
   const statusCfg = STATUS_CONFIG[tournament.status] ?? STATUS_CONFIG.PRIVATE;
 
+  const isActive = tournament.status === 'ONGOING' || tournament.status === 'FINISHED';
+
   const tabs = [
     { key: 'overview', label: t('tabOverview') },
     { key: 'registrations', label: t('tabRegistrations') },
     { key: 'categories', label: t('tabCategories') },
     { key: 'brackets', label: t('tabBrackets') },
     { key: 'invoices', label: t('tabInvoices') },
+    ...(isActive ? [{ key: 'results', label: 'Resultados' }] : []),
+    ...(isActive ? [{ key: 'protests', label: 'Protestos' }] : []),
   ];
 
   return (
@@ -208,6 +213,8 @@ export default function TournamentDetailPage() {
       {activeTab === 'categories' && <CategoriesTab tournament={tournament} t={t} />}
       {activeTab === 'brackets' && <BracketsTabLink tournamentId={id} t={t} />}
       {activeTab === 'invoices' && <InvoicesTabLink tournamentId={id} t={t} />}
+      {activeTab === 'results' && <ResultsTab tournamentId={id} />}
+      {activeTab === 'protests' && <ProtestsTab tournamentId={id} />}
     </div>
   );
 }
@@ -495,6 +502,204 @@ function InvoicesTabLink({ tournamentId, t }: { tournamentId: string; t: TFunc }
         <ChevronRight className="h-4 w-4" />
       </Link>
     </div>
+  );
+}
+
+function ResultsTab({ tournamentId }: { tournamentId: string }) {
+  const [medalists, setMedalists] = useState<Medalist[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    tournamentsApi.getMedalists(tournamentId).then(setMedalists).finally(() => setLoading(false));
+  }, [tournamentId]);
+
+  if (loading) {
+    return <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  }
+
+  if (medalists.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <Medal className="h-10 w-10 text-muted-foreground/30 mb-3" />
+        <p className="font-heading text-lg text-muted-foreground">Sem resultados ainda</p>
+        <p className="mt-1 text-sm text-muted-foreground">Os medalhistas aparecem aqui após a final de cada categoria ser concluída.</p>
+      </div>
+    );
+  }
+
+  function athleteLabel(m: Medalist['gold']) {
+    if (!m) return '—';
+    const name = `${m.athlete.firstName} ${m.athlete.lastName}`;
+    return m.club ? `${name} · ${m.club.name}` : name;
+  }
+
+  const medals: { key: 'gold' | 'silver' | 'bronze'; label: string; color: string }[] = [
+    { key: 'gold', label: 'Ouro', color: 'text-yellow-400 border-yellow-500/30 bg-yellow-500/5' },
+    { key: 'silver', label: 'Prata', color: 'text-slate-300 border-slate-400/30 bg-slate-400/5' },
+    { key: 'bronze', label: 'Bronze', color: 'text-orange-400 border-orange-500/30 bg-orange-500/5' },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {medalists.map(cat => (
+        <div key={cat.categoryId} className="rounded-lg border border-border bg-surface p-4 space-y-3">
+          <h3 className="font-heading text-base text-foreground uppercase tracking-wide">{cat.categoryLabel || 'Categoria'}</h3>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {medals.map(({ key, label, color }) => (
+              <div key={key} className={`rounded border ${color} px-3 py-2.5`}>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-1">{label}</p>
+                <p className="text-sm text-foreground truncate">{athleteLabel(cat[key])}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProtestsTab({ tournamentId }: { tournamentId: string }) {
+  const [protests, setProtests] = useState<Protest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [resolving, setResolving] = useState<string | null>(null);
+  const [modalId, setModalId] = useState<string | null>(null);
+  const [decision, setDecision] = useState('');
+  const [verdict, setVerdict] = useState<'ACCEPTED' | 'REJECTED'>('REJECTED');
+
+  useEffect(() => {
+    protestsApi.list(tournamentId).then(setProtests).finally(() => setLoading(false));
+  }, [tournamentId]);
+
+  async function resolveProtest() {
+    if (!modalId || !decision.trim()) return;
+    setResolving(modalId);
+    try {
+      const updated = await protestsApi.resolve(modalId, verdict, decision.trim());
+      setProtests(prev => prev.map(p => p.id === modalId ? updated : p));
+      setModalId(null);
+      setDecision('');
+    } finally {
+      setResolving(null);
+    }
+  }
+
+  const STATUS_COLORS: Record<ProtestStatus, string> = {
+    PENDING: 'bg-yellow-500/10 text-yellow-400',
+    UNDER_REVIEW: 'bg-blue-500/10 text-blue-400',
+    ACCEPTED: 'bg-green-500/10 text-green-400',
+    REJECTED: 'bg-red-500/10 text-red-400',
+  };
+
+  if (loading) {
+    return <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  }
+
+  if (protests.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <AlertTriangle className="h-10 w-10 text-muted-foreground/30 mb-3" />
+        <p className="font-heading text-lg text-muted-foreground">Sem protestos registados</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="rounded-lg border border-border overflow-hidden">
+        <div className="hidden sm:grid grid-cols-12 gap-3 border-b border-border bg-surface-elevated px-5 py-3 text-xs uppercase tracking-widest text-muted-foreground">
+          <span className="col-span-2">Combate</span>
+          <span className="col-span-3">Submetido por</span>
+          <span className="col-span-4">Motivo</span>
+          <span className="col-span-2">Estado</span>
+          <span className="col-span-1" />
+        </div>
+        <ul className="divide-y divide-border">
+          {protests.map(p => {
+            const red = p.combat.redAthlete ? `${p.combat.redAthlete.athlete.firstName} ${p.combat.redAthlete.athlete.lastName}` : 'TBD';
+            const blue = p.combat.blueAthlete ? `${p.combat.blueAthlete.athlete.firstName} ${p.combat.blueAthlete.athlete.lastName}` : 'TBD';
+            const isPending = p.status === 'PENDING' || p.status === 'UNDER_REVIEW';
+            return (
+              <li key={p.id} className="grid grid-cols-1 gap-1 px-5 py-3 text-sm sm:grid-cols-12 sm:items-center sm:gap-3">
+                <div className="col-span-2 text-foreground font-medium">
+                  #{p.combat.combatNumber}
+                  <span className="block text-xs text-muted-foreground">{red} vs {blue}</span>
+                </div>
+                <div className="col-span-3 text-muted-foreground">
+                  {p.filedByUser.firstName} {p.filedByUser.lastName}
+                </div>
+                <div className="col-span-4 text-muted-foreground truncate" title={p.reason}>
+                  {p.reason}
+                </div>
+                <div className="col-span-2">
+                  <span className={`inline-block rounded px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[p.status]}`}>
+                    {PROTEST_STATUS_LABELS[p.status]}
+                  </span>
+                </div>
+                <div className="col-span-1 text-right">
+                  {isPending && (
+                    <button
+                      onClick={() => { setModalId(p.id); setDecision(''); setVerdict('REJECTED'); }}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Resolver
+                    </button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      {/* Resolve modal */}
+      {modalId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-lg border border-border bg-background p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-xl text-foreground">Resolver Protesto</h2>
+              <button onClick={() => setModalId(null)} className="text-muted-foreground hover:text-foreground">
+                <ChevronRight className="h-5 w-5 rotate-180" />
+              </button>
+            </div>
+            <div className="flex gap-2">
+              {(['ACCEPTED', 'REJECTED'] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setVerdict(v)}
+                  className={`flex-1 rounded border py-2 text-sm font-semibold transition-colors ${
+                    verdict === v
+                      ? v === 'ACCEPTED' ? 'border-green-500 bg-green-500/10 text-green-400' : 'border-red-500 bg-red-500/10 text-red-400'
+                      : 'border-border text-muted-foreground hover:border-foreground'
+                  }`}
+                >
+                  {v === 'ACCEPTED' ? 'Aceitar' : 'Rejeitar'}
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={decision}
+              onChange={e => setDecision(e.target.value)}
+              placeholder="Decisão / justificação..."
+              rows={3}
+              className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none resize-none"
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setModalId(null)} className="rounded border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground">
+                Cancelar
+              </button>
+              <button
+                onClick={resolveProtest}
+                disabled={!!resolving || !decision.trim()}
+                className="flex items-center gap-2 rounded bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {resolving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

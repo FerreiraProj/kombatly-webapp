@@ -149,6 +149,15 @@ export class TournamentsController {
     return this.service.removeCategory(user.id, id, categoryId);
   }
 
+  // ── Medalists ─────────────────────────────────────────────────────────────
+
+  @Get(':id/medalists')
+  @ApiOperation({ summary: 'Get medalists per category for a tournament' })
+  @ApiResponse({ status: 200, description: 'Medalists by category.' })
+  getMedalists(@Param('id') id: string): Promise<any[]> {
+    return this.service.getMedalists(id);
+  }
+
   // ── Registrations ─────────────────────────────────────────────────────────
 
   @Get(':id/registrations')
