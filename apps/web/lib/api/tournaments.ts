@@ -67,6 +67,20 @@ export interface WeightCategory {
   gender: { id: string; code: string };
 }
 
+export interface MedalistAthlete {
+  id: string;
+  athlete: { id: string; firstName: string; lastName: string };
+  club?: { name: string } | null;
+}
+
+export interface Medalist {
+  categoryId: string;
+  categoryLabel: string;
+  gold: MedalistAthlete | null;
+  silver: MedalistAthlete | null;
+  bronze: MedalistAthlete | null;
+}
+
 export interface CreateTournamentDto {
   name: string;
   description?: string;
@@ -156,4 +170,7 @@ export const tournamentsApi = {
     apiClient
       .get(`/tournaments/${id}/registrations`, { params: filters })
       .then((r) => r.data),
+
+  getMedalists: (id: string) =>
+    apiClient.get<Medalist[]>(`/tournaments/${id}/medalists`).then((r) => r.data),
 };
