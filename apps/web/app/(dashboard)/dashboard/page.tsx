@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Trophy, Users, DollarSign, Plus, ChevronRight, Calendar, Activity } from 'lucide-react';
+import { Trophy, Users, DollarSign, Plus, ChevronRight, Calendar, Activity, BarChart2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { tournamentsApi, Tournament } from '@/lib/api/tournaments';
 import { invoicesApi, Invoice } from '@/lib/api/invoices';
 import { useAuthStore } from '@/lib/store/auth.store';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend,
+} from 'recharts';
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
@@ -102,6 +105,74 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* Charts — só mostra quando há pelo menos 2 torneios */}
+      {!loading && tournaments.length >= 2 && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* Atletas por torneio */}
+          <div className="rounded-lg border border-border bg-surface p-5 space-y-3">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+              <BarChart2 className="h-3.5 w-3.5" /> Atletas por Torneio
+            </div>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart
+                data={[...tournaments]
+                  .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+                  .slice(-8)
+                  .map((t) => ({
+                    name: t.name.length > 12 ? t.name.slice(0, 12) + '…' : t.name,
+                    athletes: t._count?.registrations ?? 0,
+                  }))}
+                margin={{ top: 4, right: 4, left: -20, bottom: 4 }}
+              >
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6b7280' }} />
+                <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 6, fontSize: 12 }}
+                  labelStyle={{ color: '#e5e7eb' }}
+                  itemStyle={{ color: '#ef4444' }}
+                />
+                <Bar dataKey="athletes" fill="#ef4444" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Distribuição por estado */}
+          <div className="rounded-lg border border-border bg-surface p-5 space-y-3">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+              <Trophy className="h-3.5 w-3.5" /> Distribuição de Estado
+            </div>
+            {(() => {
+              const statusLabels: Record<string, string> = {
+                PRIVATE: 'Rascunho', PUBLIC: 'Aberto', ONGOING: 'Ao Vivo', FINISHED: 'Terminado',
+              };
+              const statusColors: Record<string, string> = {
+                PRIVATE: '#6b7280', PUBLIC: '#3b82f6', ONGOING: '#ef4444', FINISHED: '#10b981',
+              };
+              const counts = Object.entries(
+                tournaments.reduce<Record<string, number>>((acc, t) => {
+                  acc[t.status] = (acc[t.status] ?? 0) + 1;
+                  return acc;
+                }, {}),
+              ).map(([status, value]) => ({ name: statusLabels[status] ?? status, value, fill: statusColors[status] ?? '#6b7280' }));
+              return (
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie data={counts} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={65} paddingAngle={3}>
+                      {counts.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 6, fontSize: 12 }}
+                      itemStyle={{ color: '#e5e7eb' }}
+                    />
+                    <Legend iconSize={10} wrapperStyle={{ fontSize: 11, color: '#9ca3af' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {upcoming && (
         <Link

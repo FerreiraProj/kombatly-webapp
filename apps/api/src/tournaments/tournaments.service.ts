@@ -4,10 +4,14 @@ import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 import { TournamentStatus, RoundType, CombatStatus, PlatformPaymentStatus } from '@taekwombats/database';
 import slugify from 'slugify';
+import { PushService } from '../push/push.service';
 
 @Injectable()
 export class TournamentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private push: PushService,
+  ) {}
 
   async create(promoterId: string, dto: CreateTournamentDto): Promise<any> {
     const baseSlug = slugify(dto.name, { lower: true, strict: true });
@@ -216,6 +220,19 @@ export class TournamentsService {
 
     if (status === TournamentStatus.FINISHED && !tournament.platformPaymentId) {
       await this.createPlatformPayment(id, promoterId);
+    }
+
+    if (status === TournamentStatus.ONGOING) {
+      const registrations = await this.prisma.tournamentRegistration.findMany({
+        where: { tournamentId: id, isPaid: true },
+        select: { athlete: { select: { id: true } } },
+      });
+      const msg = {
+        title: `${tournament.name} começou!`,
+        body: 'O torneio está a decorrer. Boa sorte! 🥊',
+        data: { tournamentId: id, url: `/t/${tournament.slug}` },
+      };
+      await Promise.allSettled(registrations.map((r) => this.push.sendToUser(r.athlete.id, msg)));
     }
 
     return updated;

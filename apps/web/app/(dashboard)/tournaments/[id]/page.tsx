@@ -598,6 +598,16 @@ function ResultsTab({ tournamentId }: { tournamentId: string }) {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <a
+          href={`/tournaments/${tournamentId}/results/print`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+        >
+          Exportar PDF
+        </a>
+      </div>
       {medalists.map(cat => (
         <div key={cat.categoryId} className="rounded-lg border border-border bg-surface p-4 space-y-3">
           <h3 className="font-heading text-base text-foreground uppercase tracking-wide">{cat.categoryLabel || 'Categoria'}</h3>

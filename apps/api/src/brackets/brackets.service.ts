@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BracketGeneratorService } from './services/bracket-generator.service';
 import { AreaDistributionService } from './services/area-distribution.service';
 import { ScheduleService } from './services/schedule.service';
+import { PushService } from '../push/push.service';
 
 @Injectable()
 export class BracketsService {
@@ -11,6 +12,7 @@ export class BracketsService {
     private generator: BracketGeneratorService,
     private areaDistribution: AreaDistributionService,
     private schedule: ScheduleService,
+    private push: PushService,
   ) {}
 
   async generate(tournamentId: string, promoterId: string, includeUnpaid: boolean) {
@@ -56,6 +58,18 @@ export class BracketsService {
       where: { id: tournamentId },
       data: { bracketsGenerated: true },
     });
+
+    // Notify all registered athletes
+    const registrations = await this.prisma.tournamentRegistration.findMany({
+      where: { tournamentId, isPaid: true },
+      select: { athlete: { select: { id: true } } },
+    });
+    const msg = {
+      title: `Sorteio disponível — ${tournament.name}`,
+      body: 'Os brackets foram gerados! Consulta o teu combate na plataforma.',
+      data: { tournamentId, url: `/tournaments/${tournamentId}/brackets` },
+    };
+    await Promise.allSettled(registrations.map((r) => this.push.sendToUser(r.athlete.id, msg)));
 
     return { success: true, message: 'Brackets generated successfully' };
   }

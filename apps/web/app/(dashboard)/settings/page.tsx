@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { User, Lock, Check, Loader2, AlertCircle, Shield, Upload, ImageIcon } from 'lucide-react';
+import { User, Lock, Check, Loader2, AlertCircle, Shield, Upload, ImageIcon, Gift } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/store/auth.store';
@@ -44,6 +44,7 @@ export default function SettingsPage() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState('');
   const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+  const [referrals, setReferrals] = useState<{ balance: number; history: any[] } | null>(null);
 
   const clubSchema = z.object({
     name:    z.string().min(1, t('errors.required')),
@@ -91,6 +92,12 @@ export default function SettingsPage() {
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    apiClient.get('/users/me/referrals')
+      .then(r => setReferrals(r.data))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     apiClient.get('/clubs/me')
@@ -322,6 +329,52 @@ export default function SettingsPage() {
               {logoError && <p className="text-xs text-destructive">{logoError}</p>}
             </div>
           </div>
+        </section>
+      )}
+
+      {referrals !== null && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 border-b border-border pb-3">
+            <Gift className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-heading text-xl text-foreground">Programa de Referidos</h2>
+          </div>
+
+          <div className="rounded-lg border border-border bg-surface p-5 space-y-1">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">Saldo de pontos</p>
+            <p className="font-heading text-4xl text-primary">{referrals.balance} pts</p>
+            <p className="text-xs text-muted-foreground">Os pontos podem ser trocados por descontos em futuras plataforma fees.</p>
+          </div>
+
+          {referrals.history.length > 0 ? (
+            <div className="rounded-lg border border-border overflow-hidden">
+              <div className="hidden sm:grid grid-cols-12 gap-3 border-b border-border bg-surface-elevated px-4 py-2.5 text-xs uppercase tracking-widest text-muted-foreground">
+                <span className="col-span-5">Motivo</span>
+                <span className="col-span-2">Pontos</span>
+                <span className="col-span-3">Data</span>
+                <span className="col-span-2">Estado</span>
+              </div>
+              <ul className="divide-y divide-border">
+                {referrals.history.map((entry: any) => (
+                  <li key={entry.id} className="grid grid-cols-12 items-center gap-3 px-4 py-3 text-sm">
+                    <span className="col-span-5 text-foreground truncate">{entry.reason}</span>
+                    <span className="col-span-2 font-semibold text-primary">+{entry.points}</span>
+                    <span className="col-span-3 text-muted-foreground text-xs">
+                      {new Date(entry.createdAt).toLocaleDateString('pt-PT')}
+                    </span>
+                    <span className="col-span-2">
+                      {entry.usedForDiscount ? (
+                        <span className="rounded bg-muted/20 px-2 py-0.5 text-xs text-muted-foreground">Usado</span>
+                      ) : (
+                        <span className="rounded bg-success/10 px-2 py-0.5 text-xs text-success">Disponível</span>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Ainda não tens pontos de referido. Quando outros promotores utilizarem o teu link de referência, os pontos aparecerão aqui.</p>
+          )}
         </section>
       )}
 

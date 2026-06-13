@@ -67,7 +67,8 @@ export default async function LandingPage() {
             <span className="font-heading text-2xl tracking-widest"><span className="text-primary">KOMBATLY</span><span className="text-foreground">PRO</span></span>
             <nav className="hidden items-center gap-8 text-sm font-medium text-muted-foreground md:flex">
               <a href="#features" className="hover:text-foreground transition-colors">{t('navFeatures')}</a>
-              <Link href="/events" className="text-primary font-semibold hover:text-red-700 transition-colors">{t('navEvents')}</Link>
+              <Link href="/events" className="hover:text-foreground transition-colors">{t('navEvents')}</Link>
+              <Link href="/rankings" className="text-primary font-semibold hover:text-red-700 transition-colors">Rankings</Link>
               <a href="#pricing" className="hover:text-foreground transition-colors">{t('navPricing')}</a>
             </nav>
             <div className="flex items-center gap-3">
