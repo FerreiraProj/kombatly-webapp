@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Calendar, MapPin, Users, Trophy, Clock } from 'lucide-react';
+import { Calendar, MapPin, Users, Trophy, Clock, Swords } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { RegisterCta } from './RegisterCta';
@@ -162,6 +162,120 @@ export default async function PublicTournamentPage({ params }: { params: Promise
                 </details>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Public athletes list */}
+        {tournament.publicAthletes && tournament.publicAthletes.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="font-heading text-2xl text-foreground flex items-center gap-2">
+              <Users className="h-5 w-5 text-muted-foreground" /> {t('athletesTitle')}
+            </h2>
+            {(() => {
+              const byCategory: Record<string, { label: string; order: number; athletes: any[] }> = {};
+              for (const reg of tournament.publicAthletes) {
+                const key = reg.categoryId ?? 'unknown';
+                if (!byCategory[key]) {
+                  const g = reg.category?.grade?.nameEn ?? '';
+                  const gc = reg.category?.gender?.code ?? '';
+                  const w = reg.category?.weightCategory?.displayNameEn ?? reg.category?.weightCategory?.strWeight ?? '';
+                  byCategory[key] = { label: [g, gc, w].filter(Boolean).join(' · '), order: 0, athletes: [] };
+                }
+                byCategory[key].athletes.push(reg);
+              }
+              return (
+                <div className="space-y-2">
+                  {Object.entries(byCategory).map(([key, group]) => (
+                    <details key={key} className="group rounded-lg border border-border bg-surface overflow-hidden" open>
+                      <summary className="flex cursor-pointer items-center justify-between px-5 py-3.5 hover:bg-surface-elevated transition-colors list-none">
+                        <div className="flex items-center gap-3">
+                          <svg className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                          <span className="font-heading text-sm uppercase tracking-widest text-foreground">{group.label || t('unknownCategory')}</span>
+                          <span className="text-xs text-muted-foreground">{group.athletes.length}</span>
+                        </div>
+                      </summary>
+                      <ul className="border-t border-border divide-y divide-border/50">
+                        {group.athletes.map((reg: any, i: number) => (
+                          <li key={reg.id ?? i} className="flex items-center justify-between px-5 py-2.5 text-sm">
+                            <span className="font-medium text-foreground">{reg.athlete.firstName} {reg.athlete.lastName}</span>
+                            <span className="text-xs text-muted-foreground">{reg.club?.sigla ?? reg.club?.name ?? '—'}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  ))}
+                </div>
+              );
+            })()}
+          </section>
+        )}
+
+        {/* Public brackets */}
+        {tournament.brackets && tournament.brackets.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="font-heading text-2xl text-foreground flex items-center gap-2">
+              <Swords className="h-5 w-5 text-muted-foreground" /> {t('bracketsTitle')}
+            </h2>
+            {(() => {
+              const byCategory: Record<string, { label: string; combats: any[] }> = {};
+              for (const combat of tournament.brackets) {
+                const key = combat.categoryId ?? 'unknown';
+                if (!byCategory[key]) {
+                  const cat = (tournament.categories ?? []).find((c: any) => c.id === key);
+                  const g = cat?.grade?.nameEn ?? '';
+                  const gc = cat?.gender?.code ?? '';
+                  const w = cat?.weightCategory?.displayNameEn ?? cat?.weightCategory?.strWeight ?? '';
+                  byCategory[key] = { label: [g, gc, w].filter(Boolean).join(' · ') || t('unknownCategory'), combats: [] };
+                }
+                byCategory[key].combats.push(combat);
+              }
+              return (
+                <div className="space-y-3">
+                  {Object.entries(byCategory).map(([key, group]) => (
+                    <details key={key} className="group rounded-lg border border-border bg-surface overflow-hidden">
+                      <summary className="flex cursor-pointer items-center justify-between px-5 py-3.5 hover:bg-surface-elevated transition-colors list-none">
+                        <div className="flex items-center gap-3">
+                          <svg className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                          <span className="font-heading text-sm uppercase tracking-widest text-foreground">{group.label}</span>
+                          <span className="text-xs text-muted-foreground">{group.combats.length} combates</span>
+                        </div>
+                      </summary>
+                      <div className="border-t border-border">
+                        <div className="hidden sm:grid grid-cols-12 gap-2 bg-surface-elevated px-5 py-2 text-xs uppercase tracking-widest text-muted-foreground">
+                          <span className="col-span-1">#</span>
+                          <span className="col-span-2">Ronda</span>
+                          <span className="col-span-4">Vermelho</span>
+                          <span className="col-span-4">Azul</span>
+                          <span className="col-span-1">Estado</span>
+                        </div>
+                        <ul className="divide-y divide-border/50">
+                          {group.combats.map((c: any) => {
+                            const red = c.redAthlete ? `${c.redAthlete.athlete.firstName} ${c.redAthlete.athlete.lastName}` : 'TBD';
+                            const blue = c.blueAthlete ? `${c.blueAthlete.athlete.firstName} ${c.blueAthlete.athlete.lastName}` : 'TBD';
+                            const statusColor = c.status === 'IN_PROGRESS' ? 'text-primary' : c.status === 'FINISHED' ? 'text-green-400' : 'text-muted-foreground';
+                            return (
+                              <li key={c.id} className="grid grid-cols-1 gap-1 px-5 py-2.5 text-sm sm:grid-cols-12 sm:items-center sm:gap-2">
+                                <span className="col-span-1 font-semibold text-muted-foreground">#{c.combatNumber}</span>
+                                <span className="col-span-2 text-xs text-muted-foreground uppercase">{c.roundType?.replace('_', ' ')}</span>
+                                <span className={`col-span-4 font-medium ${c.winnerId === c.redAthleteId && c.winnerId ? 'text-yellow-400' : 'text-foreground'}`}>{red}{c.status === 'FINISHED' && c.winnerId === c.redAthleteId ? ' 🥇' : ''}</span>
+                                <span className={`col-span-4 font-medium ${c.winnerId === c.blueAthleteId && c.winnerId ? 'text-yellow-400' : 'text-foreground'}`}>{blue}{c.status === 'FINISHED' && c.winnerId === c.blueAthleteId ? ' 🥇' : ''}</span>
+                                <span className={`col-span-1 text-xs ${statusColor}`}>
+                                  {c.status === 'IN_PROGRESS' ? '●' : c.status === 'FINISHED' ? '✓' : '○'}
+                                </span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              );
+            })()}
           </section>
         )}
 

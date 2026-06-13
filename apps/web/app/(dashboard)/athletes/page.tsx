@@ -220,9 +220,9 @@ export default function AthletesPage() {
                     {a.firstName[0]}{a.lastName[0]}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-foreground">
+                    <Link href={`/athletes/${a.id}`} className="truncate font-medium text-foreground hover:text-primary transition-colors">
                       {a.firstName} {a.lastName}
-                    </p>
+                    </Link>
                     {a.phone && <p className="text-xs text-muted-foreground sm:hidden">{a.phone}</p>}
                   </div>
                 </div>

@@ -144,7 +144,44 @@ export class TournamentsService {
       },
     });
     if (!tournament) throw new NotFoundException();
-    return tournament;
+
+    const result: any = { ...tournament };
+
+    if (tournament.drawVisible) {
+      result.brackets = await this.prisma.combat.findMany({
+        where: { tournamentId: tournament.id },
+        include: {
+          redAthlete: { include: { athlete: { select: { firstName: true, lastName: true } }, club: { select: { name: true, sigla: true } } } },
+          blueAthlete: { include: { athlete: { select: { firstName: true, lastName: true } }, club: { select: { name: true, sigla: true } } } },
+          area: { select: { name: true } },
+        },
+        orderBy: [{ categoryId: 'asc' }, { roundNumber: 'asc' }, { combatNumber: 'asc' }],
+      });
+    }
+
+    if (tournament.athletesVisible !== 'NONE') {
+      const regs = await this.prisma.tournamentRegistration.findMany({
+        where: {
+          tournamentId: tournament.id,
+          ...(tournament.athletesVisible === 'REGISTERED' ? { isPaid: true } : {}),
+        },
+        include: {
+          athlete: { select: { firstName: true, lastName: true } },
+          club: { select: { name: true, sigla: true } },
+          category: {
+            include: {
+              grade: { select: { nameEn: true } },
+              gender: { select: { code: true } },
+              weightCategory: { select: { strWeight: true, displayNameEn: true } },
+            },
+          },
+        },
+        orderBy: [{ category: { grade: { displayOrder: 'asc' } } }, { athlete: { lastName: 'asc' } }],
+      });
+      result.publicAthletes = regs;
+    }
+
+    return result;
   }
 
   async update(promoterId: string, id: string, dto: UpdateTournamentDto): Promise<any> {

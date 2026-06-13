@@ -25,6 +25,13 @@ export class UsersController {
     return this.service.updateProfile(user.id, dto);
   }
 
+  @Get('athletes/:id')
+  @ApiOperation({ summary: 'Get athlete profile with tournament history' })
+  @ApiResponse({ status: 200, description: 'Athlete profile and registrations.' })
+  getAthleteProfile(@Param('id') id: string): Promise<any> {
+    return this.service.getAthleteProfile(id);
+  }
+
   @Get('athletes/:id/stats')
   @ApiOperation({ summary: 'Get athlete statistics (public)' })
   @ApiResponse({ status: 200, description: 'Win/loss record and point totals.' })

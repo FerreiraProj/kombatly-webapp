@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { User, Lock, Check, Loader2, AlertCircle, Shield } from 'lucide-react';
+import { User, Lock, Check, Loader2, AlertCircle, Shield, Upload, ImageIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/store/auth.store';
+import { uploadsApi } from '@/lib/api/uploads';
 
 function inputCls(err: boolean) {
   return `w-full rounded border bg-surface-elevated px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors ${
@@ -40,6 +41,9 @@ export default function SettingsPage() {
   const [clubLoading, setClubLoading] = useState(true);
   const [clubSuccess, setClubSuccess] = useState('');
   const [clubError, setClubError] = useState('');
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState('');
+  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
   const clubSchema = z.object({
     name:    z.string().min(1, t('errors.required')),
@@ -134,6 +138,22 @@ export default function SettingsPage() {
     } catch (e: any) {
       const msg = e?.response?.data?.message;
       setClubError(Array.isArray(msg) ? msg.join(', ') : msg ?? t('errors.updateFailed'));
+    }
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !club) return;
+    setLogoUploading(true);
+    setLogoError('');
+    try {
+      const { logoUrl } = await uploadsApi.uploadClubLogo(club.id, file);
+      setClub((prev: any) => ({ ...prev, logoUrl }));
+    } catch {
+      setLogoError('Erro ao carregar logo. Tenta novamente.');
+    } finally {
+      setLogoUploading(false);
+      e.target.value = '';
     }
   }
 
@@ -277,6 +297,33 @@ export default function SettingsPage() {
           </form>
         )}
       </section>
+
+      {club && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 border-b border-border pb-3">
+            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-heading text-xl text-foreground">Logo do Clube</h2>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-elevated overflow-hidden">
+              {club.logoUrl ? (
+                <img src={`${apiBase}${club.logoUrl}`} alt="Logo" className="h-full w-full object-contain" />
+              ) : (
+                <Shield className="h-8 w-8 text-muted-foreground/30" />
+              )}
+            </div>
+            <div className="space-y-2">
+              <label className={`flex items-center gap-2 cursor-pointer rounded border border-dashed px-4 py-2.5 text-sm transition-colors ${logoUploading ? 'opacity-50 border-border' : 'border-border hover:border-primary hover:text-primary text-muted-foreground'}`}>
+                {logoUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                {logoUploading ? 'A carregar...' : club.logoUrl ? 'Substituir logo' : 'Carregar logo'}
+                <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
+              </label>
+              <p className="text-xs text-muted-foreground">PNG, JPG ou WEBP · max 5 MB</p>
+              {logoError && <p className="text-xs text-destructive">{logoError}</p>}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="space-y-4">
         <div className="flex items-center gap-2 border-b border-border pb-3">

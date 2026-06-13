@@ -7,10 +7,11 @@ import Link from 'next/link';
 import {
   Trophy, Users, Calendar, MapPin, ChevronLeft, Settings, Globe, Lock,
   Activity, CheckCircle, ExternalLink, UserPlus, Swords, ChevronRight, DollarSign,
-  ClipboardList, Radio, Medal, AlertTriangle, Loader2, CreditCard,
+  ClipboardList, Radio, Medal, AlertTriangle, Loader2, CreditCard, Upload, ImageIcon,
 } from 'lucide-react';
 import { tournamentsApi, Tournament, Medalist } from '@/lib/api/tournaments';
 import { protestsApi, Protest, PROTEST_STATUS_LABELS, ProtestStatus } from '@/lib/api/protests';
+import { uploadsApi } from '@/lib/api/uploads';
 
 function formatDate(iso?: string) {
   if (!iso) return '—';
@@ -208,7 +209,7 @@ export default function TournamentDetailPage() {
       </div>
 
       {/* Tab content */}
-      {activeTab === 'overview' && <OverviewTab tournament={tournament} t={t} />}
+      {activeTab === 'overview' && <OverviewTab tournament={tournament} t={t} onFlyerUpdate={(url) => setTournament(prev => prev ? { ...prev, flyerUrl: url } : prev)} />}
       {activeTab === 'registrations' && <RegistrationsTab tournamentId={id} t={t} />}
       {activeTab === 'categories' && <CategoriesTab tournament={tournament} t={t} />}
       {activeTab === 'brackets' && <BracketsTabLink tournamentId={id} t={t} />}
@@ -223,7 +224,59 @@ export default function TournamentDetailPage() {
 
 type TFunc = ReturnType<typeof useTranslations<'tournamentDetail'>>;
 
-function OverviewTab({ tournament, t }: { tournament: Tournament; t: TFunc }) {
+function FlyerUpload({ tournament, onUpdate }: { tournament: Tournament; onUpdate: (url: string) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    try {
+      const { flyerUrl } = await uploadsApi.uploadTournamentFlyer(tournament.id, file);
+      onUpdate(flyerUrl);
+    } catch {
+      setError('Erro ao fazer upload. Tenta novamente.');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-surface p-5 space-y-3">
+      <h3 className="font-heading text-lg text-foreground flex items-center gap-2">
+        <ImageIcon className="h-4 w-4 text-muted-foreground" /> Flyer
+      </h3>
+      {tournament.flyerUrl ? (
+        <div className="space-y-3">
+          <img
+            src={`${apiBase}${tournament.flyerUrl}`}
+            alt="Flyer"
+            className="w-full max-h-48 rounded object-contain border border-border"
+          />
+          <label className="flex items-center gap-2 cursor-pointer rounded border border-dashed border-border px-3 py-2 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+            <Upload className="h-3.5 w-3.5" />
+            {uploading ? 'A carregar...' : 'Substituir flyer'}
+            <input type="file" accept="image/*" className="hidden" onChange={handleFile} disabled={uploading} />
+          </label>
+        </div>
+      ) : (
+        <label className={`flex flex-col items-center justify-center gap-2 rounded border border-dashed px-4 py-8 cursor-pointer transition-colors ${uploading ? 'border-border opacity-50' : 'border-border hover:border-primary'}`}>
+          <Upload className="h-8 w-8 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">{uploading ? 'A carregar...' : 'Carregar flyer'}</span>
+          <span className="text-xs text-muted-foreground/60">PNG, JPG ou WEBP · max 5 MB</span>
+          <input type="file" accept="image/*" className="hidden" onChange={handleFile} disabled={uploading} />
+        </label>
+      )}
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+function OverviewTab({ tournament, t, onFlyerUpdate }: { tournament: Tournament; t: TFunc; onFlyerUpdate: (url: string) => void }) {
   const infoRows = [
     { label: t('overviewStartDate'), value: formatDate(tournament.startDate) },
     { label: t('overviewEndDate'), value: formatDate(tournament.endDate) },
@@ -295,6 +348,10 @@ function OverviewTab({ tournament, t }: { tournament: Tournament; t: TFunc }) {
           <p className="text-sm text-muted-foreground whitespace-pre-line">{tournament.description}</p>
         </div>
       )}
+
+      <div className="sm:col-span-2">
+        <FlyerUpload tournament={tournament} onUpdate={onFlyerUpdate} />
+      </div>
     </div>
   );
 }

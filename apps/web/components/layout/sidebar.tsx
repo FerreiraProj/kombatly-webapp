@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutDashboard, Trophy, Users, DollarSign, Settings, LogOut, ShieldAlert, Globe,
+  LayoutDashboard, Trophy, Users, DollarSign, Settings, LogOut, ShieldAlert, Globe, Key,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
@@ -28,6 +28,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     { label: t('athletes'),    href: '/athletes',     icon: Users },
     { label: t('financials'),  href: '/financials',   icon: DollarSign },
     { label: t('settings'),    href: '/settings',     icon: Settings },
+    { label: 'API Keys',       href: '/api-keys',     icon: Key },
   ];
 
   const adminItems = [
