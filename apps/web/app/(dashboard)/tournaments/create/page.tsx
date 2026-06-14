@@ -74,6 +74,7 @@ export default function CreateTournamentPage() {
     drawType: z.enum(['random', 'ranking']),
     numRounds: z.coerce.number().int().min(1).max(10),
     hasVestLimitation: z.boolean(),
+    hasRepechage: z.boolean(),
     vestQty1: z.coerce.number().int().min(0).max(99).optional(),
     vestQty2: z.coerce.number().int().min(0).max(99).optional(),
     vestQty3: z.coerce.number().int().min(0).max(99).optional(),
@@ -107,6 +108,7 @@ export default function CreateTournamentPage() {
       drawType: 'random',
       numRounds: 3,
       hasVestLimitation: false,
+      hasRepechage: false,
       vestQty1: 4,
       vestQty2: 4,
       vestQty3: 4,
@@ -182,6 +184,7 @@ export default function CreateTournamentPage() {
         drawType: values.drawType.toUpperCase() as 'RANDOM' | 'RANKING',
         numRounds: values.numRounds,
         hasVestLimitation: values.hasVestLimitation,
+        hasRepechage: values.hasRepechage,
         vestQtyType1: values.vestQty1,
         vestQtyType2: values.vestQty2,
         vestQtyType3: values.vestQty3,
@@ -371,6 +374,26 @@ export default function CreateTournamentPage() {
                   </div>
                 )}
               </div>
+
+              {/* Repechage */}
+              <Controller
+                control={control}
+                name="hasRepechage"
+                render={({ field }) => (
+                  <label className="flex cursor-pointer items-center gap-3">
+                    <div
+                      onClick={() => field.onChange(!field.value)}
+                      className={`relative h-6 w-11 rounded-full transition-colors ${field.value ? 'bg-primary' : 'bg-border'}`}
+                    >
+                      <div className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${field.value ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    </div>
+                    <div>
+                      <span className="text-sm text-foreground">Ativar Repescagem</span>
+                      <p className="text-xs text-muted-foreground">Perdedores das meias-finais disputam o bronze (para categorias com 8+ atletas)</p>
+                    </div>
+                  </label>
+                )}
+              />
 
               {/* Category selection */}
               <div className="space-y-3">

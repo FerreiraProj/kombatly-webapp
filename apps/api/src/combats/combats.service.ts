@@ -79,9 +79,14 @@ export class CombatsService {
         }
       }
 
-      // A.2 — Auto-create Bronze combat when both semi-finals finish
+      // A.2 — Auto-create Bronze/Repechage when both semi-finals finish
       if (combat.roundType === RoundType.SEMI_FINAL) {
-        await this.maybeCreateBronzeCombat(combat);
+        await this.maybeCreateBronzeOrRepechage(combat);
+      }
+
+      // A.3 — After Repechage finishes → create Bronze (winner vs Final loser)
+      if (combat.roundType === RoundType.REPECHAGE) {
+        await this.maybeCreateBronzeAfterRepechage(combat);
       }
 
       // B.1 — Recalculate remaining schedules for this area
@@ -170,7 +175,7 @@ export class CombatsService {
     return updated;
   }
 
-  private async maybeCreateBronzeCombat(finishedSemi: any): Promise<void> {
+  private async maybeCreateBronzeOrRepechage(finishedSemi: any): Promise<void> {
     const semis = await this.prisma.combat.findMany({
       where: { categoryId: finishedSemi.categoryId, roundType: RoundType.SEMI_FINAL },
       orderBy: { bracketPosition: 'asc' },
@@ -178,14 +183,14 @@ export class CombatsService {
 
     if (semis.length < 2 || !semis.every(s => s.status === CombatStatus.FINISHED)) return;
 
-    const existing = await this.prisma.combat.findFirst({
-      where: { categoryId: finishedSemi.categoryId, roundType: RoundType.BRONZE },
+    const existingBronze = await this.prisma.combat.findFirst({
+      where: { categoryId: finishedSemi.categoryId, roundType: { in: [RoundType.BRONZE, RoundType.REPECHAGE] } },
     });
-    if (existing) return;
+    if (existingBronze) return;
 
-    const losers = semis.map(s => {
-      return s.redAthleteId === s.winnerId ? s.blueAthleteId : s.redAthleteId;
-    }).filter((id): id is string => id !== null && id !== undefined);
+    const losers = semis
+      .map(s => (s.redAthleteId === s.winnerId ? s.blueAthleteId : s.redAthleteId))
+      .filter((id): id is string => !!id);
 
     if (losers.length < 2) return;
 
@@ -194,8 +199,15 @@ export class CombatsService {
       include: { category: true },
     });
 
+    const tournament = await this.prisma.tournament.findUnique({ where: { id: finishedSemi.tournamentId } });
+    const numAthletes = await this.prisma.tournamentRegistration.count({
+      where: { tournamentId: finishedSemi.tournamentId, categoryId: finishedSemi.categoryId },
+    });
+
+    const useRepechage = tournament?.hasRepechage && numAthletes >= 8;
+
     const avgDuration = finalCombat?.category?.avgCombatDuration ?? 6;
-    const scheduledTime = finalCombat?.scheduledTime
+    const baseTime = finalCombat?.scheduledTime
       ? new Date(finalCombat.scheduledTime.getTime() + (avgDuration + 2) * 60 * 1000)
       : undefined;
 
@@ -204,24 +216,72 @@ export class CombatsService {
       _max: { combatNumber: true },
     });
 
-    const bronze = await this.prisma.combat.create({
+    const created = await this.prisma.combat.create({
       data: {
         tournamentId: finishedSemi.tournamentId,
         categoryId: finishedSemi.categoryId,
         areaId: finalCombat?.areaId ?? finishedSemi.areaId,
         combatNumber: (maxCombat._max.combatNumber ?? 0) + 1,
         roundNumber: (finalCombat?.roundNumber ?? finishedSemi.roundNumber) + 1,
-        roundType: RoundType.BRONZE,
+        roundType: useRepechage ? RoundType.REPECHAGE : RoundType.BRONZE,
         bracketPosition: 0,
         redAthleteId: losers[0],
         blueAthleteId: losers[1],
-        isRepechage: false,
-        ...(scheduledTime && { scheduledTime }),
+        isRepechage: useRepechage,
+        ...(baseTime && { scheduledTime: baseTime }),
       },
       include: this.combatInclude(),
     });
 
-    this.events.emitToTournament(finishedSemi.tournamentId, 'combat:updated', bronze);
+    this.events.emitToTournament(finishedSemi.tournamentId, 'combat:updated', created);
+    if (created.areaId) this.events.emitToArea(created.areaId, 'combat:updated', created);
+  }
+
+  private async maybeCreateBronzeAfterRepechage(finishedRepechage: any): Promise<void> {
+    const existingBronze = await this.prisma.combat.findFirst({
+      where: { categoryId: finishedRepechage.categoryId, roundType: RoundType.BRONZE },
+    });
+    if (existingBronze) return;
+
+    const finalCombat = await this.prisma.combat.findFirst({
+      where: { categoryId: finishedRepechage.categoryId, roundType: RoundType.FINAL },
+      include: { category: true },
+    });
+    if (!finalCombat || finalCombat.status !== CombatStatus.FINISHED || !finalCombat.winnerId) return;
+
+    const finalLoserId = finalCombat.redAthleteId === finalCombat.winnerId
+      ? finalCombat.blueAthleteId
+      : finalCombat.redAthleteId;
+    if (!finalLoserId || !finishedRepechage.winnerId) return;
+
+    const avgDuration = finalCombat.category?.avgCombatDuration ?? 6;
+    const baseTime = finalCombat.scheduledTime
+      ? new Date(finalCombat.scheduledTime.getTime() + (avgDuration + 2) * 60 * 1000)
+      : undefined;
+
+    const maxCombat = await this.prisma.combat.aggregate({
+      where: { tournamentId: finishedRepechage.tournamentId },
+      _max: { combatNumber: true },
+    });
+
+    const bronze = await this.prisma.combat.create({
+      data: {
+        tournamentId: finishedRepechage.tournamentId,
+        categoryId: finishedRepechage.categoryId,
+        areaId: finalCombat.areaId ?? finishedRepechage.areaId,
+        combatNumber: (maxCombat._max.combatNumber ?? 0) + 1,
+        roundNumber: finalCombat.roundNumber + 1,
+        roundType: RoundType.BRONZE,
+        bracketPosition: 0,
+        redAthleteId: finishedRepechage.winnerId,
+        blueAthleteId: finalLoserId,
+        isRepechage: false,
+        ...(baseTime && { scheduledTime: baseTime }),
+      },
+      include: this.combatInclude(),
+    });
+
+    this.events.emitToTournament(finishedRepechage.tournamentId, 'combat:updated', bronze);
     if (bronze.areaId) this.events.emitToArea(bronze.areaId, 'combat:updated', bronze);
   }
 

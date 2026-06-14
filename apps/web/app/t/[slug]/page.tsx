@@ -284,6 +284,7 @@ export default async function PublicTournamentPage({ params }: { params: Promise
           <RegisterCta
             tournamentId={tournament.id}
             deadline={tournament.registrationDeadline}
+            categories={categories}
             ctaTitle={t('ctaTitle')}
             ctaDeadline={t('ctaDeadline', { date: fmt(tournament.registrationDeadline) })}
             ctaBtn={t('ctaBtn')}

@@ -93,6 +93,8 @@ export function roundLabel(roundType: string): string {
     QUARTER_FINAL: 'Quarter-Finals',
     SEMI_FINAL:   'Semi-Finals',
     FINAL:        'Final',
+    REPECHAGE:    'Repescagem',
+    BRONZE:       '3º Lugar',
   };
   return labels[roundType] ?? `Round ${roundType}`;
 }

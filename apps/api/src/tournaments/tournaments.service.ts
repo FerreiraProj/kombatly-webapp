@@ -5,12 +5,14 @@ import { UpdateTournamentDto } from './dto/update-tournament.dto';
 import { TournamentStatus, RoundType, CombatStatus, PlatformPaymentStatus } from '@taekwombats/database';
 import slugify from 'slugify';
 import { PushService } from '../push/push.service';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class TournamentsService {
   constructor(
     private prisma: PrismaService,
     private push: PushService,
+    private mail: MailService,
   ) {}
 
   async create(promoterId: string, dto: CreateTournamentDto): Promise<any> {
@@ -389,6 +391,28 @@ export class TournamentsService {
         bronze: bronzeMedalist,
       };
     });
+  }
+
+  async sendInvites(promoterId: string, tournamentId: string, emails: string[]): Promise<{ sent: number }> {
+    const tournament = await this.findOwned(tournamentId, promoterId);
+    const deadline = tournament.registrationDeadline
+      ? new Date(tournament.registrationDeadline).toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' })
+      : '—';
+    await Promise.allSettled(
+      emails.map((email) => this.mail.sendTournamentInvite(email, tournament.name, tournament.slug, deadline)),
+    );
+    return { sent: emails.length };
+  }
+
+  async getPlatformPaymentForTournament(tournamentId: string, promoterId: string): Promise<any> {
+    await this.findOwned(tournamentId, promoterId);
+    const payment = await this.prisma.platformPayment.findUnique({ where: { tournamentId } });
+    if (!payment) return null;
+    const settings = await this.prisma.platformSettings.findFirst();
+    return {
+      ...payment,
+      costPerAthlete: Number(settings?.costPerAthlete ?? 2.5),
+    };
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────

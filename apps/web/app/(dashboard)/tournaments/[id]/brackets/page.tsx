@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import {
   ChevronLeft, Trophy, Download, Loader2, AlertCircle, Filter,
-  ChevronRight, Swords,
+  ChevronRight, Swords, Repeat2,
 } from 'lucide-react';
 import {
   bracketsApi, Combat, groupByCategory, groupIntoRounds, roundLabel, categoryLabel,
@@ -77,7 +77,9 @@ export default function BracketsPage() {
     [combats, selectedCategoryId],
   );
 
-  const rounds = useMemo(() => groupIntoRounds(filtered), [filtered]);
+  const mainCombats = useMemo(() => filtered.filter((c) => c.roundType !== 'REPECHAGE'), [filtered]);
+  const repechageCombats = useMemo(() => filtered.filter((c) => c.roundType === 'REPECHAGE'), [filtered]);
+  const rounds = useMemo(() => groupIntoRounds(mainCombats), [mainCombats]);
 
   if (loading) {
     return (
@@ -178,7 +180,12 @@ export default function BracketsPage() {
 
           {/* Bracket view */}
           {selectedCategoryId ? (
-            <BracketTree t={t} rounds={rounds} />
+            <>
+              <BracketTree t={t} rounds={rounds} />
+              {repechageCombats.length > 0 && (
+                <RepechageSection t={t} combats={repechageCombats} />
+              )}
+            </>
           ) : (
             <CategoryList t={t} categories={categories} onSelect={setSelectedCategoryId} />
           )}
@@ -388,6 +395,22 @@ function AthleteRow({
           {score}
         </span>
       )}
+    </div>
+  );
+}
+
+function RepechageSection({ t, combats }: { t: TFunc; combats: Combat[] }) {
+  return (
+    <div className="mt-6 space-y-3">
+      <div className="flex items-center gap-2">
+        <Repeat2 className="h-4 w-4 text-yellow-400" />
+        <p className="text-xs uppercase tracking-widest font-medium text-yellow-400">Repescagem</p>
+      </div>
+      <div className="flex flex-wrap gap-4">
+        {combats.map((combat) => (
+          <CombatCard key={combat.id} t={t} combat={combat} />
+        ))}
+      </div>
     </div>
   );
 }

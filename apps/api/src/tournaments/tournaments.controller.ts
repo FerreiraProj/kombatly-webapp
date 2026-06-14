@@ -172,6 +172,38 @@ export class TournamentsController {
     return this.service.removeCategory(user.id, id, categoryId);
   }
 
+  // ── Invites ───────────────────────────────────────────────────────────────
+
+  @Post(':id/invite')
+  @ApiBearerAuth()
+  @ApiSecurity('apiKey')
+  @UseGuards(JwtOrApiKeyGuard)
+  @ApiOperation({ summary: 'Send tournament invites by email' })
+  @ApiBody({ schema: { properties: { emails: { type: 'array', items: { type: 'string' } } } } })
+  @ApiResponse({ status: 201, description: 'Invites sent.' })
+  sendInvites(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+    @Body('emails') emails: string[],
+  ): Promise<any> {
+    return this.service.sendInvites(user.id, id, emails ?? []);
+  }
+
+  // ── Platform Payment ──────────────────────────────────────────────────────
+
+  @Get(':id/platform-payment')
+  @ApiBearerAuth()
+  @ApiSecurity('apiKey')
+  @UseGuards(JwtOrApiKeyGuard)
+  @ApiOperation({ summary: 'Get platform payment record for a tournament' })
+  @ApiResponse({ status: 200, description: 'Platform payment or null.' })
+  getPlatformPayment(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+  ): Promise<any> {
+    return this.service.getPlatformPaymentForTournament(id, user.id);
+  }
+
   // ── Medalists ─────────────────────────────────────────────────────────────
 
   @Get(':id/medalists')

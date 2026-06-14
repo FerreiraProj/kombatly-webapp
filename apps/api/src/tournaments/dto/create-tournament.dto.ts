@@ -91,6 +91,10 @@ export class CreateTournamentDto {
   areasVisible?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  hasRepechage?: boolean;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   categoryIds?: string[];

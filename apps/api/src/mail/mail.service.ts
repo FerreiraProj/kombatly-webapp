@@ -34,6 +34,21 @@ export class MailService {
     });
   }
 
+  async sendTournamentInvite(to: string, tournamentName: string, slug: string, deadline: string): Promise<void> {
+    const frontendUrl = this.config.get('FRONTEND_URL', 'http://localhost:3000');
+    const link = `${frontendUrl}/t/${slug}`;
+    await this.send({
+      to,
+      subject: `Convite para ${tournamentName} — Kombatly`,
+      html: `
+        <p>Foste convidado para participar em <strong>${tournamentName}</strong>.</p>
+        <p>Deadline de inscrição: <strong>${deadline}</strong></p>
+        <p><a href="${link}" style="padding:12px 24px;background:#ef4444;color:#fff;border-radius:6px;text-decoration:none">Ver torneio e inscrever-me</a></p>
+        <p style="color:#6b7280;font-size:12px">Se não quiseres receber este tipo de convites, podes ignorar este email.</p>
+      `,
+    });
+  }
+
   async sendEmailVerification(email: string, token: string): Promise<void> {
     const frontendUrl = this.config.get('FRONTEND_URL', 'http://localhost:3000');
     const link = `${frontendUrl}/verify-email?token=${token}`;

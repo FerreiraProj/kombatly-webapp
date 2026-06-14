@@ -335,6 +335,7 @@ model Tournament {
   sponsorLogos             Json?
   status                   TournamentStatus @default(PRIVATE)
   bracketsGenerated        Boolean          @default(false)
+  hasRepechage             Boolean          @default(false)
   platformPaymentId        String?
   createdAt                DateTime         @default(now())
   updatedAt                DateTime         @updatedAt

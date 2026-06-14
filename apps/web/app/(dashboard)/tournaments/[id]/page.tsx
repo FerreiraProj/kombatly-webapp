@@ -8,6 +8,7 @@ import {
   Trophy, Users, Calendar, MapPin, ChevronLeft, Settings, Globe, Lock,
   Activity, CheckCircle, ExternalLink, UserPlus, Swords, ChevronRight, DollarSign,
   ClipboardList, Radio, Medal, AlertTriangle, Loader2, CreditCard, Upload, ImageIcon,
+  Copy, Check, Download, Mail, ChevronDown,
 } from 'lucide-react';
 import { tournamentsApi, Tournament, Medalist } from '@/lib/api/tournaments';
 import { protestsApi, Protest, PROTEST_STATUS_LABELS, ProtestStatus } from '@/lib/api/protests';
@@ -210,7 +211,7 @@ export default function TournamentDetailPage() {
 
       {/* Tab content */}
       {activeTab === 'overview' && <OverviewTab tournament={tournament} t={t} onFlyerUpdate={(url) => setTournament(prev => prev ? { ...prev, flyerUrl: url } : prev)} />}
-      {activeTab === 'registrations' && <RegistrationsTab tournamentId={id} t={t} />}
+      {activeTab === 'registrations' && <RegistrationsTab tournamentId={id} tournamentName={tournament.name} t={t} />}
       {activeTab === 'categories' && <CategoriesTab tournament={tournament} t={t} />}
       {activeTab === 'brackets' && <BracketsTabLink tournamentId={id} t={t} />}
       {activeTab === 'invoices' && <InvoicesTabLink tournamentId={id} t={t} />}
@@ -277,6 +278,37 @@ function FlyerUpload({ tournament, onUpdate }: { tournament: Tournament; onUpdat
 }
 
 function OverviewTab({ tournament, t, onFlyerUpdate }: { tournament: Tournament; t: TFunc; onFlyerUpdate: (url: string) => void }) {
+  const [copied, setCopied] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteEmails, setInviteEmails] = useState('');
+  const [inviteSending, setInviteSending] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  function copyLink() {
+    navigator.clipboard.writeText(`${window.location.origin}/t/${tournament.slug}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function sendInvites() {
+    const emails = inviteEmails
+      .split(/[\n,;]+/)
+      .map((e) => e.trim())
+      .filter(Boolean);
+    if (emails.length === 0) return;
+    setInviteSending(true);
+    setInviteMsg(null);
+    try {
+      await tournamentsApi.sendInvites(tournament.id, emails);
+      setInviteMsg({ type: 'success', text: `Convites enviados para ${emails.length} email(s).` });
+      setInviteEmails('');
+    } catch {
+      setInviteMsg({ type: 'error', text: 'Erro ao enviar convites. Tenta novamente.' });
+    } finally {
+      setInviteSending(false);
+    }
+  }
+
   const infoRows = [
     { label: t('overviewStartDate'), value: formatDate(tournament.startDate) },
     { label: t('overviewEndDate'), value: formatDate(tournament.endDate) },
@@ -326,19 +358,59 @@ function OverviewTab({ tournament, t, onFlyerUpdate }: { tournament: Tournament;
           </div>
         ))}
 
-        <div className="pt-2 border-t border-border">
+        <div className="pt-2 border-t border-border space-y-2">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Globe className="h-3.5 w-3.5" />
               {t('overviewPublicUrl')}
             </div>
-            <Link
-              href={`/t/${tournament.slug}`}
-              className="text-primary hover:underline truncate max-w-[160px]"
-            >
-              /t/{tournament.slug}
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href={`/t/${tournament.slug}`} className="text-primary hover:underline truncate max-w-[120px]">
+                /t/{tournament.slug}
+              </Link>
+              <button
+                onClick={copyLink}
+                title="Copiar link"
+                className="flex items-center justify-center rounded p-1 text-muted-foreground hover:text-primary transition-colors"
+              >
+                {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+              </button>
+            </div>
           </div>
+
+          <button
+            onClick={() => setShowInvite((v) => !v)}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+          >
+            <Mail className="h-3.5 w-3.5" />
+            Convidar por email
+            <ChevronDown className={`h-3 w-3 transition-transform ${showInvite ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showInvite && (
+            <div className="space-y-2 pt-1">
+              <textarea
+                value={inviteEmails}
+                onChange={(e) => setInviteEmails(e.target.value)}
+                placeholder="email1@exemplo.com, email2@exemplo.com"
+                rows={3}
+                className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 resize-none"
+              />
+              {inviteMsg && (
+                <p className={`text-xs ${inviteMsg.type === 'success' ? 'text-success' : 'text-destructive'}`}>
+                  {inviteMsg.text}
+                </p>
+              )}
+              <button
+                onClick={sendInvites}
+                disabled={inviteSending || !inviteEmails.trim()}
+                className="flex items-center gap-2 rounded bg-primary px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {inviteSending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+                Enviar Convites
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -356,7 +428,7 @@ function OverviewTab({ tournament, t, onFlyerUpdate }: { tournament: Tournament;
   );
 }
 
-function RegistrationsTab({ tournamentId, t }: { tournamentId: string; t: TFunc }) {
+function RegistrationsTab({ tournamentId, tournamentName, t }: { tournamentId: string; tournamentName: string; t: TFunc }) {
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -366,6 +438,29 @@ function RegistrationsTab({ tournamentId, t }: { tournamentId: string; t: TFunc 
       .then(setRegistrations)
       .finally(() => setLoading(false));
   }, [tournamentId]);
+
+  function exportCsv() {
+    const header = 'Nome,Email,Categoria,Clube,Peso (kg),Pago,Check-in';
+    const rows = registrations.map((r) => {
+      const name = `${r.athlete?.firstName ?? ''} ${r.athlete?.lastName ?? ''}`.trim();
+      const email = r.athlete?.email ?? '';
+      const cat = [r.category?.grade?.nameEn, r.category?.gender?.code, r.category?.weightCategory?.strWeight]
+        .filter(Boolean).join(' · ') || (r.category?.customName ?? '');
+      const club = r.club?.name ?? '';
+      const weight = r.weight ?? '';
+      const paid = r.invoiceNote?.status === 'PAID' ? 'Sim' : 'Não';
+      const checkin = r.checkedIn ? 'Sim' : 'Não';
+      return [name, email, cat, club, weight, paid, checkin].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    });
+    const csv = [header, ...rows].join('\n');
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `inscricoes_${tournamentName.replace(/[^a-z0-9]/gi, '_')}_${date}.csv`;
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
 
   if (loading) {
     return (
@@ -386,6 +481,15 @@ function RegistrationsTab({ tournamentId, t }: { tournamentId: string; t: TFunc 
   }
 
   return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <button
+          onClick={exportCsv}
+          className="flex items-center gap-2 rounded border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+        >
+          <Download className="h-3.5 w-3.5" /> Exportar CSV
+        </button>
+      </div>
     <div className="rounded-lg border border-border overflow-hidden">
       <div className="hidden sm:grid grid-cols-12 gap-3 border-b border-border bg-surface-elevated px-5 py-3 text-xs uppercase tracking-widest text-muted-foreground">
         <span className="col-span-3">{t('registrationsAthlete')}</span>
@@ -419,6 +523,7 @@ function RegistrationsTab({ tournamentId, t }: { tournamentId: string; t: TFunc 
           </li>
         ))}
       </ul>
+    </div>
     </div>
   );
 }
@@ -564,10 +669,16 @@ function InvoicesTabLink({ tournamentId, t }: { tournamentId: string; t: TFunc }
 
 function ResultsTab({ tournamentId }: { tournamentId: string }) {
   const [medalists, setMedalists] = useState<Medalist[]>([]);
+  const [payment, setPayment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    tournamentsApi.getMedalists(tournamentId).then(setMedalists).finally(() => setLoading(false));
+    Promise.all([
+      tournamentsApi.getMedalists(tournamentId),
+      tournamentsApi.getPlatformPayment(tournamentId).catch(() => null),
+    ])
+      .then(([m, p]) => { setMedalists(m); setPayment(p); })
+      .finally(() => setLoading(false));
   }, [tournamentId]);
 
   if (loading) {
@@ -608,6 +719,28 @@ function ResultsTab({ tournamentId }: { tournamentId: string }) {
           Exportar PDF
         </a>
       </div>
+
+      {payment && (
+        <div className="flex items-center justify-between rounded-lg border border-border bg-surface px-5 py-4">
+          <div className="flex items-center gap-3">
+            <DollarSign className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Pagamento Plataforma</p>
+              <p className="text-sm text-foreground font-medium">
+                {payment.numAthletes} atletas × €{Number(payment.costPerAthlete).toFixed(2)} = <span className="font-bold text-foreground">€{Number(payment.finalAmount).toFixed(2)}</span>
+              </p>
+            </div>
+          </div>
+          <span className={`rounded px-2.5 py-1 text-xs font-semibold uppercase tracking-wider ${
+            payment.status === 'PAID'
+              ? 'bg-success/10 text-success'
+              : 'bg-yellow-500/10 text-yellow-400'
+          }`}>
+            {payment.status === 'PAID' ? 'Pago' : 'Pendente'}
+          </span>
+        </div>
+      )}
+
       {medalists.map(cat => (
         <div key={cat.categoryId} className="rounded-lg border border-border bg-surface p-4 space-y-3">
           <h3 className="font-heading text-base text-foreground uppercase tracking-wide">{cat.categoryLabel || 'Categoria'}</h3>

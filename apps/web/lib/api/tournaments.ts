@@ -95,6 +95,7 @@ export interface CreateTournamentDto {
   drawType: string;
   numRounds: number;
   hasVestLimitation: boolean;
+  hasRepechage?: boolean;
   vestQtyType1?: number;
   vestQtyType2?: number;
   vestQtyType3?: number;
@@ -173,4 +174,10 @@ export const tournamentsApi = {
 
   getMedalists: (id: string) =>
     apiClient.get<Medalist[]>(`/tournaments/${id}/medalists`).then((r) => r.data),
+
+  getPlatformPayment: (id: string) =>
+    apiClient.get<any>(`/tournaments/${id}/platform-payment`).then((r) => r.data),
+
+  sendInvites: (id: string, emails: string[]) =>
+    apiClient.post(`/tournaments/${id}/invite`, { emails }).then((r) => r.data),
 };
